@@ -1,0 +1,261 @@
+:root {
+  --bg: #0b0b0b;
+  --accent: #39ff14;
+  --accent-light: #76ff65;
+  --text: #e0e0e0;
+  --glass: rgba(255,255,255,0.06);
+  --border: rgba(57,255,20,0.35);
+}
+
+/* ===== HEADER BASIS ===== */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background: #0b0b0b;
+  border-bottom: 2px solid var(--accent);
+  overflow: hidden;
+  box-shadow:
+    0 0 25px rgba(57,255,20,0.35),
+    inset 0 -2px 25px rgba(57,255,20,0.25);
+  animation: headerPulse 8s ease-in-out infinite alternate;
+}
+
+/* ===== LEUCHTEFFEKTE ===== */
+header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 120%, rgba(57,255,20,0.2), transparent 70%);
+  z-index: 1;
+  opacity: 0.4;
+  pointer-events: none;
+  animation: headerGlow 8s ease-in-out infinite alternate;
+}
+
+header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  box-shadow: 0 0 20px rgba(57,255,20,0.8);
+  z-index: 2;
+}
+
+/* ===== LOGO-BANNER ===== */
+.brand {
+  position: relative;
+  width: 100%;
+  display: block;
+  z-index: 3;
+}
+
+.brand-banner {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.5s ease, filter 0.5s ease;
+  filter: drop-shadow(0 0 25px rgba(57,255,20,0.4));
+}
+
+.brand-banner:hover {
+  transform: scale(1.01);
+  filter: drop-shadow(0 0 40px rgba(57,255,20,0.8));
+}
+
+/* ===== MENÜ ===== */
+.menu-container {
+  position: absolute;
+  top: 50%;
+  right: 30px;
+  transform: translateY(-50%);
+  z-index: 5;
+}
+
+.menu-toggle {
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  border: none;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 10px;
+  padding: 10px 18px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(57,255,20,0.5);
+  transition: all 0.3s ease;
+}
+.menu-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 35px rgba(57,255,20,0.9);
+}
+
+/* ===== DROPDOWN (zweispaltig + Kategorien) ===== */
+.dropdown {
+  position: absolute;
+  top: 70px;
+  right: 0;
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  min-width: 420px;
+  max-height: 440px;
+  background: rgba(20,20,20,0.96);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow-y: auto;
+  box-shadow: 0 10px 28px rgba(0,0,0,.55), 0 0 24px rgba(57,255,20,.35);
+  backdrop-filter: blur(10px);
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) rgba(40,40,40,0.8);
+  animation: dropdownFade 0.25s ease forwards;
+  z-index: 9999;
+  padding: 10px;
+}
+
+/* Scrollbar Style */
+.dropdown::-webkit-scrollbar { width: 8px; }
+.dropdown::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(57,255,20,0.6);
+}
+
+/* Kategorien-Titel */
+.dropdown-category {
+  grid-column: span 2;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid rgba(57,255,20,0.2);
+  margin-top: 8px;
+  text-shadow: 0 0 8px rgba(57,255,20,0.7);
+}
+
+/* Menülinks */
+.dropdown a {
+  padding: 10px 14px;
+  color: #fff;
+  border-bottom: 1px solid rgba(57,255,20,0.15);
+  transition: 0.2s ease;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  display: block;
+  text-decoration: none;
+}
+.dropdown a:last-child { border-bottom: none; }
+
+.dropdown a:hover {
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  transform: translateX(1px);
+  border-radius: 6px;
+}
+
+/* Dropdown anzeigen */
+.dropdown.show {
+  display: grid;
+}
+
+/* Animation */
+@keyframes dropdownFade {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== ANIMATIONEN ===== */
+@keyframes headerPulse {
+  from { box-shadow: 0 0 20px rgba(57,255,20,0.3); }
+  to   { box-shadow: 0 0 45px rgba(57,255,20,0.6); }
+}
+@keyframes headerGlow {
+  from { opacity: 0.3; }
+  to   { opacity: 0.7; }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 940px) {
+  .menu-container { right: 15px; }
+  .dropdown { grid-template-columns: 1fr; min-width: 280px; }
+  .dropdown-category { grid-column: span 1; }
+}
+@media (max-width: 640px) {
+  .brand-banner { object-fit: contain; }
+  .dropdown { top: 55px; }
+}
+
+header {
+  position: relative;
+  z-index: 1000;
+}
+
+.menu-container,
+.menu-toggle,
+.dropdown {
+  z-index: 9999 !important;
+}
+/* === FIX: Menü immer sichtbar über allem === */
+header {
+  position: relative;
+  overflow: visible !important;
+  z-index: 2000 !important;
+}
+
+.header-inner {
+  position: relative;
+  overflow: visible !important;
+}
+
+.menu-container {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: visible !important;
+  z-index: 3000 !important;
+}
+
+.dropdown {
+  display: none;
+  position: absolute;
+  top: 70px;
+  right: 0;
+  background: rgba(20,20,20,0.96);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.55), 0 0 24px rgba(57,255,20,.35);
+  padding: 10px;
+  z-index: 99999 !important;
+}
+
+.dropdown.show {
+  display: grid !important;
+}
+/* === FIX: Header-Overlay blockiert Eingaben === */
+header::before,
+header::after {
+  pointer-events: none !important;
+}
+
+header {
+  pointer-events: auto !important;
+}
+/* 🔔 Nachrichten-Badge */
+.msg-count {
+  background: linear-gradient(90deg, #39ff14, #76ff65);
+  color: #fff;
+  border-radius: 50%;
+  padding: 2px 7px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-left: 6px;
+  box-shadow: 0 0 8px rgba(57,255,20,0.5);
+  vertical-align: middle;
+}

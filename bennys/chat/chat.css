@@ -1,0 +1,627 @@
+/* FINAL – Bennys Chat (isoliert) */
+#bc-root, #bc-root * { box-sizing:border-box; font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif }
+
+/* ⭐ Neon Chat Bubble – Benny's Style */
+#bc-bubble{
+  position:fixed;
+  bottom:22px;
+  right:22px;
+  z-index:9999;
+
+  width:64px;
+  height:64px;
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:26px;
+  color:white;
+
+  /* Neuer Farbverlauf + Glow */
+  background:radial-gradient(circle at 30% 30%, #39ff14, #0c4416 70%);
+  border:2px solid rgba(57,255,20,0.65);
+
+  box-shadow:
+    0 0 14px rgba(57,255,20,.8),
+    0 0 38px rgba(57,255,20,.4),
+    inset 0 0 12px rgba(255,255,255,.18);
+
+  cursor:pointer;
+  transition:
+    transform .22s ease,
+    box-shadow .32s ease;
+}
+
+/* Hover – leichter Pop + stärkerer Glow */
+#bc-bubble:hover{
+  transform:scale(1.14);
+  box-shadow:
+    0 0 22px rgba(122,255,150,1),
+    0 0 48px rgba(57,255,20,.75),
+    inset 0 0 16px rgba(255,255,255,.28);
+}
+
+/* Pulse bei ungelesener Nachricht */
+#bc-bubble.bc-pulse{
+  animation:bc-pulseGlow .7s ease-in-out;
+}
+
+@keyframes bc-pulseGlow{
+  0%   { transform:scale(1);   box-shadow:0 0 12px rgba(57,255,20,.6); }
+  50%  { transform:scale(1.18); box-shadow:0 0 30px rgba(57,255,20,1); }
+  100% { transform:scale(1);   box-shadow:0 0 14px rgba(57,255,20,.75); }
+}
+
+
+#bc-popup {
+  position:fixed;
+  bottom:92px;
+  right:22px;
+  z-index:9998;
+  width:470px;
+  height:540px;
+  color:#fff;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(57,255,20,.35);
+  box-shadow:0 0 40px rgba(57,255,20,.45), inset 0 0 8px rgba(255,255,255,.06);
+  backdrop-filter: blur(8px);
+  background:linear-gradient(180deg, rgba(57,255,20,.12), rgba(0,0,0,.88) 18%);
+  display:none;
+  opacity:0;
+  pointer-events:none;
+}
+#bc-popup[data-open="1"] {
+  display:flex;
+  flex-direction:column;
+  opacity:1;
+  pointer-events:auto;
+}
+
+/* --- Kopfbereich mit Glow --- */
+.bc-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  background:rgba(0,0,0,0.55);
+  border-bottom:1px solid rgba(57,255,20,0.4);
+  backdrop-filter:blur(6px);
+}
+
+.bc-head-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+
+.bc-ptt-status {
+  flex:1;
+  display:flex;
+  justify-content:center;
+  min-width:0;
+}
+
+.bc-ptt-indicator {
+  display:inline-flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap:5px;
+  font-size:12px;
+  letter-spacing:0.4px;
+  color:#d6ffd8;
+  border:1px solid rgba(122,255,150,0.4);
+  border-radius:999px;
+  padding:1px 8px;
+  white-space:nowrap;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:all .25s ease;
+  box-shadow: 0 0 12px rgba(57,255,20, .8), 0 0 38px rgba(57,255,20, .4), inset 0 0 12px rgba(255, 255, 255, .18)
+}
+
+.bc-ptt-indicator::before {
+  content:"🎙️";
+  font-size:14px;
+}
+
+.bc-ptt-indicator.is-active {
+  color:#fff;
+  background:rgba(57,255,20,0.25);
+  border-color:rgba(150,255,180,0.75);
+  box-shadow:0 0 18px rgba(57,255,20,0.35);
+}
+
+.bc-ptt-indicator.is-error {
+  color:#c8ffd5;
+  background:rgba(10,40,10,0.35);
+  border-color:rgba(57,255,20,0.65);
+  box-shadow:0 0 18px rgba(57,255,20,0.45);
+}
+
+#bc-root.bc-recording #bc-popup {
+  border-color:rgba(102,255,140,0.6);
+  box-shadow:0 0 48px rgba(57,255,20,0.55), inset 0 0 12px rgba(255,255,255,0.08);
+}
+
+#bc-root.bc-recording .bc-ptt-indicator {
+  animation:bc-ptt-pulse 1s ease-in-out infinite;
+}
+
+@keyframes bc-ptt-pulse {
+  0%   { transform:scale(1);     box-shadow:0 0 12px rgba(57,255,20,0.3); }
+  50%  { transform:scale(1.05); box-shadow:0 0 22px rgba(57,255,20,0.6); }
+  100% { transform:scale(1);     box-shadow:0 0 12px rgba(57,255,20,0.3); }
+}
+
+/* Titel mit Neon-Effekt */
+.bc-title {
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:0.8px;
+  color:#ffffff;
+  text-transform:uppercase;
+  text-shadow:
+    0 0 4px rgba(57,255,20,.9),
+    0 0 8px rgba(57,255,20,.7),
+    0 0 16px rgba(57,255,20,.55),
+    0 0 32px rgba(57,255,20,.45);
+  flex-shrink:0;
+}
+
+/* Hover Effekt */
+#bc-sound:hover {
+  background:rgba(57,255,20,0.35);
+  transform:scale(1.12);
+  box-shadow:0 0 14px rgba(57,255,20,.75), inset 0 0 4px rgba(255,255,255,.2);
+}
+
+#bc-close:hover {
+  transform:scale(1.2);
+  filter: drop-shadow(0 0 12px rgba(57,255,20,1));
+}
+
+.bc-main{ display:flex; flex-direction:column; flex:1; min-height:0 }
+
+#bc-messages{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  padding:14px;
+  display:block;
+  position:relative;
+
+  /* ✅ Bild soll IMMER sichtbar sein → egal was die Seite rundherum macht */
+  background-image: url('/bennys/chat/bg.png') !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-attachment: scroll !important; /* FIX gegen black-screen */
+
+  z-index: 1;
+}
+#bc-messages::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  pointer-events:none;
+  z-index:0;
+}
+
+#bc-messages::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.45); /* Abdunklung über dem Bild */
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ✅ Nachrichten über das Overlay legen */
+.bc-msg, .bc-meta {
+  position:relative;
+  z-index:1;
+}
+
+#bc-messages::after{ content:""; display:block; clear:both; }
+
+#bc-messages::-webkit-scrollbar{ width:8px }
+#bc-messages::-webkit-scrollbar-thumb{ background:#118f2b; border-radius:4px }
+#bc-messages::-webkit-scrollbar-track{ background:rgba(255,255,255,.1) }
+
+.bc-msg{
+  position:relative;
+  max-width:74%;
+  padding:10px 14px;
+  border-radius:12px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.16);
+  line-height:1.35;
+  margin:6px 0;
+  display:inline-block;
+  clear:both;
+  transition:0.2s;
+  animation: msg-in .35s ease;
+}
+
+.bc-msg.voice .bc-text {
+  margin-bottom:8px;
+}
+
+.bc-voice {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.bc-voice-label {
+  font-size:11px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:rgba(220,255,220,0.8);
+}
+
+.bc-voice audio {
+  width:100%;
+  min-width:220px;
+  max-width:320px;
+  background:rgba(0,0,0,0.25);
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.18);
+  padding:2px 0;
+  filter:drop-shadow(0 0 8px rgba(57,255,20,0.25));
+}
+
+/* Eigene Nachricht (rechts, neongrün) */
+.bc-msg.me{
+  float:right;
+  background:rgba(30,120,40,0.55);
+  border:1px solid rgba(102,255,140,1);
+  box-shadow:0 0 12px rgba(57,255,20,.45);
+  text-align:right;
+}
+
+/* Fremde Nachricht (links, smokey noir) */
+.bc-msg:not(.me){
+  float:left;
+  background:rgba(30,120,40,0.55);
+  border:1px solid rgba(102,255,140,1);
+  box-shadow:0 0 12px rgba(57,255,20,.45);
+  text-align:left;
+}
+
+.bc-msg.mention-me .bc-content{
+  background:rgba(57,255,20,0.35);
+  border-color:rgba(150,255,180,0.85);
+  box-shadow:0 0 18px rgba(160,255,180,0.55);
+}
+
+.bc-msg.mention-me .bc-meta{
+  color:#fff;
+}
+
+.bc-text .bc-mention{
+  color:#d4ff9a;
+  font-weight:700;
+  text-shadow:0 0 6px rgba(160,255,120,0.5);
+}
+
+.bc-msg.mention-me .bc-text .bc-mention{
+  color:#e8ffd6;
+}
+
+
+.bc-msg img{ max-width:240px; border-radius:8px; display:block; margin-bottom:6px }
+.bc-meta{ font-size:11px; opacity:.75; margin-top:6px }
+
+#bc-form{ display:flex; align-items:center; gap:8px; padding:12px; flex-shrink:0; position:relative;
+  border-top:1px solid rgba(255,255,255,.12); background:linear-gradient(0deg, rgba(0,0,0,.6), rgba(57,255,20,.10));
+}
+#bc-input{ flex:1; padding:10px 14px; border-radius:10px; outline:none; border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.12); color:#fff; }
+.bc-attach, .bc-send{ background:#118f2b; border:1px solid #39ff14; color:#fff; border-radius:8px; padding:9px 14px;
+  cursor:pointer; transition:.2s; font-weight:700;
+}
+.bc-attach{ padding:8px 10px }
+.bc-attach:hover, .bc-send:hover{ filter:brightness(1.15) }
+
+/* ✅ Delete-Button korrekt */
+.bc-del{
+  position:absolute;
+  top:-8px;
+  right:-8px;
+  width:20px;
+  height:20px;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,0.20);
+  color:#fff;
+  font-size:13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  opacity:0;
+  pointer-events:none;
+  transition:0.2s;
+}
+.bc-msg:hover .bc-del{
+  opacity:1;
+  pointer-events:auto;
+}
+.bc-del:hover{
+  background:rgba(255,255,255,0.35);
+}
+.bc-msg{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin:10px 0; /* etwas mehr Luft */
+}
+
+/* Avatar */
+.bc-avatar{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  object-fit:cover;
+  flex-shrink:0;
+  box-shadow:0 0 4px rgba(0,0,0,.4);
+}
+
+/* Inhalt */
+.bc-content{
+  max-width: calc(100% - 42px); /* Platz für Avatar */
+  padding:12px 16px;
+  border-radius:14px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.18);
+  line-height:1.35;
+}
+
+/* Eigene rechts */
+.bc-msg.me{
+  flex-direction: row-reverse;
+}
+.bc-msg.me{
+  flex-direction: row-reverse; /* Avatar rechts */
+}
+
+.bc-msg.me .bc-content{
+  background:rgba(57,255,20,0.35);
+  border-color:rgba(122,255,150,.9);
+  text-align:right;
+}
+@keyframes msg-in{
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+/* --- Header Layout Optimierung --- */
+.bc-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  font-weight:700;
+  background:rgba(57,255,20,.18);
+  border-bottom:1px solid rgba(57,255,20,.28);
+}
+
+.bc-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* --- Sound Button Redesign --- */
+#bc-sound {
+  background:rgba(57,255,20,0.22);
+  border:1px solid rgba(122,255,150,0.55);
+  border-radius:8px;
+  padding:1px 1px;
+  font-size:18px;
+  cursor:pointer;
+  transition:.25s ease;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 0 8px rgba(57,255,20,.55), inset 0 0 4px rgba(255,255,255,.12);
+}
+
+/* Hover */
+#bc-sound:hover {
+  background:rgba(57,255,20,.35);
+  transform:scale(1.12);
+  box-shadow:0 0 14px rgba(57,255,20,.9), inset 0 0 6px rgba(255,255,255,.25);
+}
+
+/* Klick-Press */
+#bc-sound:active {
+  transform:scale(0.92);
+}
+
+/* Ping beim Aktivieren */
+#bc-sound.bc-ping {
+  animation:bc-ping 0.5s ease-out;
+}
+@keyframes bc-ping {
+  0%   { box-shadow:0 0 0px rgba(57,255,20,.0); }
+  50%  { box-shadow:0 0 22px rgba(57,255,20,.85); }
+  100% { box-shadow:0 0 8px rgba(57,255,20,.55); }
+}
+
+/* Sound AUS → transparent */
+#bc-sound.muted {
+  opacity:.35;
+  filter:none;
+}
+
+/* Close Button sauberer */
+#bc-close {
+  background:transparent;
+  border:0;
+  font-size:26px;
+  padding:4px 6px;
+  cursor:pointer;
+  transition:.25s;
+}
+#bc-close:hover {
+  color:#8eff9d;
+  transform:scale(1.2);
+}
+.bc-sound-btn.muted {
+  opacity:.35;
+  filter:grayscale(1);
+}
+#bc-root {
+  position: fixed !important;
+  bottom: 0;
+  right: 0;
+  width: auto;
+  height: auto;
+  z-index: 999999 !important;
+  pointer-events: none; /* macht es “durchlässig” */
+}
+
+/* Popup & Bubble wieder aktivierbar */
+#bc-popup,
+#bc-bubble {
+  pointer-events: auto;
+}
+/* ==== Host-Seiten-Styles vom Chat fernhalten (main, padding, max-width etc.) ==== */
+#bc-popup .bc-main {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+  text-align: initial !important;
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Sicherheitsnetz: Messages-Fläche immer voll breit/hoch im Chat */
+#bc-messages {
+  width: 100% !important;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+#bc-form {
+  margin: 0 !important;
+  padding: 12px !important;
+  max-width: none !important;
+  position: relative;
+}
+.bc-content img {
+    display: block;
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 12px;
+    object-fit: contain;
+    margin-top: 6px;
+    margin-bottom: 4px;
+}
+.bc-emoji-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+/* ✅ Hidden muss IMMER schließen – egal, was globale Resets tun */
+#bc-emoji-picker[hidden],
+.bc-emoji-picker[hidden]{
+  display:none !important;
+}
+
+/* ✅ Sichtbar: wie vorher (links), plus Scroll & Grid */
+#bc-emoji-picker,
+.bc-emoji-picker{
+  position:absolute;
+  bottom:75px;
+  left:15px;
+
+  width:360px;
+  max-height:260px;         /* Scrollhöhe */
+  overflow-y:auto;          /* Scroll aktiv */
+
+
+  padding:10px;
+  border-radius:10px;
+  box-shadow:0 0 12px rgba(0,0,0,.5);
+  z-index:99999;
+
+  display:grid;                         /* schöne Matrix */
+  grid-template-columns:repeat(8,1fr);
+  gap:6px;
+}
+
+/* ✅ Emojis */
+.bc-emoji-picker span{
+  cursor:pointer;
+  font-size:22px;
+  line-height:1;
+  user-select:none;
+  transition:transform .08s ease;
+}
+.bc-emoji-picker span:hover{ transform:scale(1.12); }
+
+/* (optional) hübschere Scrollbar (WebKit) */
+#bc-emoji-picker::-webkit-scrollbar{ width:6px; }
+#bc-emoji-picker::-webkit-scrollbar-thumb{ background:#666; border-radius:6px; }
+#bc-emoji-picker::-webkit-scrollbar-thumb:hover{ background:#888; }
+
+
+.bc-emoji-picker span, .bc-emoji-picker {
+  cursor: pointer;
+}
+#bc-mention {
+  position:absolute;
+  background:#1a1a1a;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.15);
+  padding:6px 0;
+  max-height:200px;
+  overflow-y:auto;
+  z-index:999999;
+  box-shadow:0 10px 22px rgba(0,0,0,0.55);
+}
+
+#bc-mention[data-position="above"]{
+  box-shadow:0 -12px 24px rgba(0,0,0,0.55);
+  transform-origin:bottom center;
+}
+
+#bc-mention[data-position="below"]{
+  transform-origin:top center;
+}
+
+#bc-mention .item {
+  padding:6px 12px;
+  cursor:pointer;
+  white-space:nowrap;
+  color:#eee;
+}
+
+#bc-mention .item .handle {
+  margin-left:6px;
+  font-size:12px;
+  color:rgba(255,255,255,0.65);
+}
+
+#bc-mention .item.active,
+#bc-mention .item:hover {
+  background:rgba(57,255,20,0.18);
+  color:#fff;
+}
