@@ -19,10 +19,6 @@ $about    = getContent('about');
 $services = getContent('services');
 $team     = getContent('team');
 
-/** Galerie laden */
-$stmt = $pdo->query("SELECT * FROM gallery ORDER BY id DESC");
-$galleryImages = $stmt->fetchAll();
-
 /** NEWS laden (letzte 5) */
 $newsStmt   = $pdo->query("SELECT * FROM news ORDER BY erstellt_am DESC LIMIT 5");
 $latestNews = $newsStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -295,20 +291,14 @@ $userRole   = $_SESSION['user_role'] ?? '';
   </div>
 </section>
 
-<!-- GALERIE -->
-<section id="gallery">
+<!-- GALERIE TEASER -->
+<section id="gallery-teaser" class="cards-section">
   <h2 class="section-title">Galerie</h2>
-  <div class="gallery">
-    <?php if (!empty($galleryImages)): ?>
-      <?php foreach ($galleryImages as $img): ?>
-        <img
-          src="<?= htmlspecialchars($img['image_url']) ?>"
-          alt="<?= htmlspecialchars($img['alt_text'] ?: 'Galeriebild') ?>"
-          loading="lazy">
-      <?php endforeach; ?>
-    <?php else: ?>
-      <p>Keine Bilder in der Galerie vorhanden.</p>
-    <?php endif; ?>
+  <div class="card-grid">
+    <div class="card glass gallery-teaser-card">
+      <p>Entdecke eindrucksvolle Bilder und Videos aus Benny&apos;s Werkstatt in unserer neuen Mediengalerie.</p>
+      <a class="btn btn-primary gallery-btn" href="gallery.php">Zur Galerie</a>
+    </div>
   </div>
 </section>
 

@@ -93,7 +93,7 @@ $adminErlaubteRollen = [
         <a href="<?= $basePath ?>index.php#about">🌐Über uns</a>
         <a href="<?= $basePath ?>index.php#services">⚙️Leistungen</a>
         <a href="<?= $basePath ?>index.php#team">🤜🤛Team</a>
-        <a href="<?= $basePath ?>index.php#gallery">🎬Galerie</a>
+        <a href="<?= $basePath ?>gallery.php">🎬Galerie</a>
         <a href="<?= $basePath ?>mitarbeiter.php">👨‍🔧 Mitarbeiter</a>
         <a href="<?= $basePath ?>news_archiv.php">📰 News</a>
         <?php if (!empty($_SESSION['user_id'])): ?><a href="<?= $basePath ?>forum.php">💬 Forum</a><?php endif; ?>
