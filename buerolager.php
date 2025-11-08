@@ -17,7 +17,7 @@ $userRang = null;
 
 if (!empty($_SESSION['user_id'])) {
   $stmt = $pdo->prepare("
-    SELECT m.rang 
+    SELECT m.rang
     FROM mitarbeiter m
     JOIN user_accounts u ON u.mitarbeiter_id = m.id
     WHERE u.id = ?
@@ -41,8 +41,8 @@ $erlaubteRollen = [
 
 /* === Zugriff verweigern === */
 if (!$isAdmin && (!$userRang || !in_array($userRang, $erlaubteRollen))) {
-  echo "<h2 style='color:#76ff65;text-align:center;margin-top:120px;'>🚫 Zugriff verweigert</h2>
-        <p style='text-align:center;color:#fff;'>Dein Rang <b>" . htmlspecialchars($userRang ?: 'Unbekannt') . "</b> hat keinen Zugriff auf das Bürolager.</p>";
+  echo "<h2 style='color:#76ff65;text-align:center;margin-top:120px;'>🚫 Zugriff verweigert</h2>"
+      . "<p style='text-align:center;color:#fff;'>Dein Rang <b>" . htmlspecialchars($userRang ?: 'Unbekannt') . "</b> hat keinen Zugriff auf das Bürolager.</p>";
   exit;
 }
 
@@ -51,15 +51,17 @@ $produkte = [
   'Absperrung', 'Aluminium', 'Auto Vertrag', 'Bandage', 'Batterien', 'Bauxit',
   'Benzin Kanister', 'BlueV', 'Diamant', 'Eisenbarren', 'Eisenerz', 'Faser',
   'Funk', 'Glasflasche', 'Goldbarren', 'Golderz', 'Handy', 'Holz', 'Holzbrett',
-  'Juwel', 'Kegel', 'Lvl.2 Angel', 'Lvl.2 Holzaxt', 'Lvl.2 Schaufel', 
-  'Lvl.2 Sichel', 'Lvl.2 Spitzhacke', 'Lvl.2 Tasche', 'Lvl.3 Angel', 
-  'Lvl.3 Holzaxt', 'Lvl.3 Schaufel', 'Lvl.3 Sichel', 'Lvl.3 Spitzhacke', 
+  'Juwel', 'Kegel', 'Lvl.2 Angel', 'Lvl.2 Holzaxt', 'Lvl.2 Schaufel',
+  'Lvl.2 Sichel', 'Lvl.2 Spitzhacke', 'Lvl.2 Tasche', 'Lvl.3 Angel',
+  'Lvl.3 Holzaxt', 'Lvl.3 Schaufel', 'Lvl.3 Sichel', 'Lvl.3 Spitzhacke',
   'Lvl.3 Tasche', 'Lvl.4 Tasche', 'MonsterV', 'Notfallkit', 'Öl', 'Panikknopf',
   'Pappe', 'Papeir', 'Plastik', 'Plastikflasche', 'Rechnung', 'Repair Kit',
   'Sauberes Wasser', 'Schraubenzieher', 'Stoff', 'Verpackung', 'Wagenheber',
   'Waschlappen'
 ];
 sort($produkte, SORT_NATURAL | SORT_FLAG_CASE);
+
+$lowStockThreshold = 10;
 
 /* === Neue Lageraktion === */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -102,8 +104,35 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
   $bestand[$row['produkt']] = (int)$row['bestand'];
 }
 
+foreach ($produkte as $p) {
+  if (!isset($bestand[$p])) {
+    $bestand[$p] = 0;
+  }
+}
+ksort($bestand, SORT_NATURAL | SORT_FLAG_CASE);
+
 /* === Verlauf laden === */
 $verlauf = $pdo->query("SELECT * FROM buero_lager_verlauf ORDER BY datum DESC LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
+$timelineEntries = array_slice($verlauf, 0, 12);
+
+/* === Kennzahlen berechnen === */
+$gesamtMenge = array_sum($bestand);
+$kritischeBestande = array_filter($bestand, fn($menge) => $menge < $lowStockThreshold);
+$anzahlKritisch = count($kritischeBestande);
+$anzahlProdukte = count($bestand);
+$durchschnittBestand = $anzahlProdukte > 0 ? round($gesamtMenge / $anzahlProdukte) : 0;
+$kritischeQuote = $anzahlProdukte > 0 ? round(($anzahlKritisch / $anzahlProdukte) * 100) : 0;
+$maxBestand = !empty($bestand) ? max($bestand) : 0;
+
+$watchlistCandidates = array_filter(
+  $bestand,
+  fn($menge) => $menge <= max($lowStockThreshold * 2, $lowStockThreshold + 12)
+);
+$watchlistSorted = $watchlistCandidates;
+asort($watchlistSorted, SORT_NUMERIC);
+$watchlist = array_slice($watchlistSorted, 0, 6, true);
+
+$letzteAktualisierung = $verlauf[0]['datum'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -117,88 +146,228 @@ $verlauf = $pdo->query("SELECT * FROM buero_lager_verlauf ORDER BY datum DESC LI
 <body>
 <?php include 'header.php'; ?>
 
-<main class="page-shell">
-  <header class="page-header">
-    <h1 class="page-title">📁 Bürolager</h1>
-    <p class="page-subtitle">Alle Büro- und Verwaltungsartikel an einem zentralen Ort – inklusive Historie.</p>
-  </header>
+<main class="inventory-page">
+  <section class="inventory-hero">
+    <div class="inventory-hero__content">
+      <span class="inventory-hero__tag">Verwaltung &amp; Backoffice</span>
+      <h1 class="inventory-hero__title">📁 Bürolager</h1>
+      <p class="inventory-hero__lead">
+        Ein fokussierter Arbeitsplatz für Papier, Tinte und Technik. Schnell sortiert, sofort gefiltert
+        und perfekt auf administrative Anforderungen abgestimmt.
+      </p>
+      <div class="inventory-hero__meta">
+        <span class="meta-chip">
+          <span class="meta-label">Letzte Buchung</span>
+          <span class="meta-value">
+            <?= $letzteAktualisierung ? date('d.m.Y H:i \U\h\r', strtotime($letzteAktualisierung)) : 'Keine Daten' ?>
+          </span>
+        </span>
+        <span class="meta-chip">
+          <span class="meta-label">Ø Bestand pro Artikel</span>
+          <span class="meta-value"><?= number_format($durchschnittBestand, 0, ',', '.') ?> Stk.</span>
+        </span>
+        <span class="meta-chip <?= $anzahlKritisch > 0 ? 'is-alert' : '' ?>">
+          <span class="meta-label">Kritischer Anteil</span>
+          <span class="meta-value"><?= $kritischeQuote ?>%</span>
+        </span>
+      </div>
+      <div class="inventory-hero__actions">
+        <a class="inventory-cta" href="#lageraktion">Aktion verbuchen</a>
+        <span class="inventory-hero__hint">Intelligente Filter machen die Bedarfsliste jederzeit präsent.</span>
+      </div>
+    </div>
+  </section>
 
-  <section class="section-stack">
-    <article class="surface-panel">
-      <header class="toolbar">
-        <h2 class="headline-glow">📦 Aktuelle Bestände</h2>
+  <section class="metric-deck" aria-label="Kennzahlen">
+    <article class="metric-card metric-card--accent">
+      <span class="metric-card__icon" aria-hidden="true">🗂️</span>
+      <div class="metric-card__values">
+        <span class="metric-card__label">Artikel im Blick</span>
+        <span class="metric-card__value"><?= number_format($anzahlProdukte, 0, ',', '.') ?></span>
+      </div>
+      <span class="metric-card__foot">Verwaltungssortiment</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-card__icon" aria-hidden="true">📦</span>
+      <div class="metric-card__values">
+        <span class="metric-card__label">Gesamtmenge</span>
+        <span class="metric-card__value"><?= number_format($gesamtMenge, 0, ',', '.') ?></span>
+      </div>
+      <div class="metric-card__progress" role="presentation">
+        <span class="metric-card__bar" style="--fill: <?= min(100, max(8, 100 - $kritischeQuote)) ?>%;"></span>
+      </div>
+      <span class="metric-card__foot">Sichere Bestände: <?= max(0, 100 - $kritischeQuote) ?>%</span>
+    </article>
+    <article class="metric-card metric-card--warning <?= $anzahlKritisch > 0 ? 'is-active' : '' ?>">
+      <span class="metric-card__icon" aria-hidden="true">⚠️</span>
+      <div class="metric-card__values">
+        <span class="metric-card__label">Kritische Artikel</span>
+        <span class="metric-card__value"><?= number_format($anzahlKritisch, 0, ',', '.') ?></span>
+      </div>
+      <span class="metric-card__foot">Unter <?= $lowStockThreshold ?> Stück</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-card__icon" aria-hidden="true">🕒</span>
+      <div class="metric-card__values">
+        <span class="metric-card__label">Letzte 12 Buchungen</span>
+        <span class="metric-card__value"><?= number_format(count($timelineEntries), 0, ',', '.') ?></span>
+      </div>
+      <span class="metric-card__foot">Direkt im Verlauf sichtbar</span>
+    </article>
+  </section>
+
+  <section class="inventory-layout">
+    <article class="inventory-panel inventory-panel--table" data-inventory>
+      <header class="panel-header">
+        <div class="panel-titles">
+          <h2>Live-Bestände</h2>
+          <p>Digitales Regalsystem für jeden Büroartikel – inklusive kritischer Markierungen.</p>
+        </div>
+        <div class="panel-actions">
+          <label class="search-field">
+            <span class="sr-only">Bestand durchsuchen</span>
+            <input type="search" placeholder="Produkt suchen…" data-table-search>
+          </label>
+          <button type="button" class="chip-toggle" data-table-filter="low-stock">
+            <span>Nur kritische Bestände</span>
+          </button>
+        </div>
       </header>
       <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>Produkt</th><th>Bestand</th></tr></thead>
+        <table class="data-table" data-inventory-table>
+          <thead>
+            <tr><th>Produkt</th><th>Bestand</th></tr>
+          </thead>
           <tbody>
             <?php foreach ($bestand as $produkt => $menge): ?>
               <tr>
                 <td><?= htmlspecialchars($produkt) ?></td>
-                <td class="<?= $menge < 10 ? 'low-stock' : '' ?>"><?= $menge ?></td>
+                <td class="<?= $menge < $lowStockThreshold ? 'low-stock' : '' ?>">
+                  <?= number_format($menge, 0, ',', '.') ?>
+                </td>
               </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
+        <p class="empty-state" data-empty-state hidden>
+          Keine Treffer für deine Filtereinstellung. Passe Suche oder Filter an.
+        </p>
       </div>
+      <footer class="panel-footer">
+        <div class="panel-bubble">
+          <span class="indicator-dot indicator-dot--critical"></span>
+          <span><?= number_format($anzahlKritisch, 0, ',', '.') ?> Artikel unter <?= $lowStockThreshold ?> Stück</span>
+        </div>
+        <div class="panel-bubble">
+          <span class="indicator-dot indicator-dot--safe"></span>
+          <span>Ø Bestand: <?= number_format($durchschnittBestand, 0, ',', '.') ?> Stück</span>
+        </div>
+      </footer>
     </article>
 
-    <article class="form-card">
-      <h2 class="headline-glow">➕/➖ Lageraktion durchführen</h2>
-      <form method="post" class="form-grid">
-        <div class="input-control">
-          <label for="produkt">Produkt</label>
-          <select id="produkt" name="produkt" required>
-            <option value="">– bitte wählen –</option>
-            <?php foreach ($produkte as $p): ?>
-              <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-
-        <div class="input-control">
-          <label for="menge">Menge</label>
-          <input id="menge" class="input-field" type="number" name="menge" min="1" required>
-        </div>
-
-        <div class="input-control">
-          <label for="aktion">Aktion</label>
-          <select id="aktion" name="aktion" required>
-            <option value="hinzugefügt">➕ Hinzugefügt</option>
-            <option value="entnommen">➖ Entnommen</option>
-          </select>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="button-main">Aktion speichern</button>
-        </div>
-      </form>
-    </article>
-
-    <?php if (!empty($verlauf)): ?>
-      <article class="surface-panel">
-        <header class="toolbar">
-          <h2 class="headline-glow">🕒 Letzte Aktionen</h2>
-          <span class="text-muted">Die neuesten 100 Einträge</span>
+    <aside class="inventory-sidebar">
+      <article class="inventory-panel inventory-panel--insights">
+        <header class="panel-header">
+          <div class="panel-titles">
+            <h2>Watchlist</h2>
+            <p>Verbrauchsmaterialien mit Priorität für die nächste Bestellung.</p>
+          </div>
         </header>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Datum</th><th>Produkt</th><th>Menge</th><th>Aktion</th><th>Mitarbeiter</th></tr></thead>
-            <tbody>
-              <?php foreach ($verlauf as $v): ?>
-                <tr>
-                  <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
-                  <td><?= htmlspecialchars($v['produkt']) ?></td>
-                  <td><?= htmlspecialchars($v['menge']) ?></td>
-                  <td><span class="badge <?= $v['aktion']==='hinzugefügt' ? 'glow' : 'negative' ?>"><?= htmlspecialchars($v['aktion']) ?></span></td>
-                  <td><?= htmlspecialchars($v['mitarbeiter']) ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
+        <?php if (!empty($watchlist)): ?>
+          <ol class="watchlist">
+            <?php foreach ($watchlist as $produkt => $menge): ?>
+              <?php
+                $progress = $maxBestand > 0 ? round(($menge / $maxBestand) * 100) : 0;
+                $progress = max(6, min(100, $progress));
+              ?>
+              <li class="watchlist-item <?= $menge < $lowStockThreshold ? 'is-critical' : '' ?>">
+                <div class="watchlist-row">
+                  <span class="watchlist-name"><?= htmlspecialchars($produkt) ?></span>
+                  <span class="watchlist-count"><?= number_format($menge, 0, ',', '.') ?></span>
+                </div>
+                <span class="watchlist-bar" style="--fill: <?= $progress ?>%;"></span>
+              </li>
+            <?php endforeach; ?>
+          </ol>
+        <?php else: ?>
+          <p class="watchlist-empty">Keine Engpässe – alles bereit für den Büroalltag.</p>
+        <?php endif; ?>
       </article>
-    <?php endif; ?>
+
+      <article class="inventory-panel inventory-panel--form" id="lageraktion">
+        <header class="panel-header">
+          <div class="panel-titles">
+            <h2>Buchung erfassen</h2>
+            <p>In Sekunden dokumentiert – Nachschub und Entnahmen bleiben transparent.</p>
+          </div>
+        </header>
+        <form method="post" class="inventory-form">
+          <div class="input-control">
+            <label for="produkt">Produkt</label>
+            <select id="produkt" name="produkt" required>
+              <option value="">– bitte wählen –</option>
+              <?php foreach ($produkte as $p): ?>
+                <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="form-columns">
+            <div class="input-control">
+              <label for="menge">Menge</label>
+              <input id="menge" class="input-field" type="number" name="menge" min="1" required>
+            </div>
+            <div class="input-control">
+              <span class="input-label">Aktion</span>
+              <div class="segmented-control">
+                <input type="radio" id="aktion-add-buero" name="aktion" value="hinzugefügt" checked>
+                <label for="aktion-add-buero">Hinzufügen</label>
+                <input type="radio" id="aktion-remove-buero" name="aktion" value="entnommen">
+                <label for="aktion-remove-buero">Entnehmen</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="inventory-submit">Buchung speichern</button>
+            <span class="form-hint">erscheint unmittelbar im Verlauf</span>
+          </div>
+        </form>
+      </article>
+    </aside>
+
+    <article class="inventory-panel inventory-panel--full inventory-panel--history">
+      <header class="panel-header">
+        <div class="panel-titles">
+          <h2>Aktivitätsprotokoll</h2>
+          <p>Die letzten <?= number_format(count($timelineEntries), 0, ',', '.') ?> Bewegungen im Bürobestand.</p>
+        </div>
+      </header>
+      <?php if (!empty($timelineEntries)): ?>
+        <ol class="history-timeline">
+          <?php foreach ($timelineEntries as $entry): ?>
+            <?php $isAdd = $entry['aktion'] === 'hinzugefügt'; ?>
+            <li class="history-item <?= $isAdd ? 'is-add' : 'is-remove' ?>">
+              <span class="history-icon" aria-hidden="true"><?= $isAdd ? '➕' : '➖' ?></span>
+              <div class="history-body">
+                <div class="history-headline">
+                  <strong><?= htmlspecialchars($entry['produkt']) ?></strong>
+                  <span class="history-quantity">
+                    <?= $isAdd ? '+' : '−' ?><?= number_format((int)$entry['menge'], 0, ',', '.') ?>
+                  </span>
+                </div>
+                <div class="history-meta">
+                  <span><?= date('d.m.Y, H:i \U\h\r', strtotime($entry['datum'])) ?></span>
+                  <span>von <?= htmlspecialchars($entry['mitarbeiter']) ?></span>
+                </div>
+              </div>
+            </li>
+          <?php endforeach; ?>
+        </ol>
+      <?php else: ?>
+        <p class="history-empty">Noch keine Buchungen vorhanden.</p>
+      <?php endif; ?>
+    </article>
   </section>
 </main>
 
@@ -206,7 +375,6 @@ $verlauf = $pdo->query("SELECT * FROM buero_lager_verlauf ORDER BY datum DESC LI
   <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
   <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
 </footer>
-
 
 <script src="script.js"></script>
 </body>

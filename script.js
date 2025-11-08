@@ -18,6 +18,48 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ------------------------------
+     INVENTAR-TABELLEN: SUCHE & FILTER
+  ------------------------------- */
+  const inventoryPanels = document.querySelectorAll('[data-inventory]');
+  inventoryPanels.forEach(panel => {
+    const table = panel.querySelector('[data-inventory-table]');
+    if (!table) return;
+
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const searchInput = panel.querySelector('[data-table-search]');
+    const filterButton = panel.querySelector('[data-table-filter="low-stock"]');
+    const emptyState = panel.querySelector('[data-empty-state]');
+
+    const applyFilters = () => {
+      const query = (searchInput?.value || '').trim().toLowerCase();
+      const onlyLowStock = filterButton?.classList.contains('is-active');
+      let visibleRows = 0;
+
+      rows.forEach(row => {
+        const productCell = row.querySelector('td');
+        const amountCell = row.querySelector('td:nth-child(2)');
+        const matchesSearch = !query || (productCell && productCell.textContent.toLowerCase().includes(query));
+        const matchesLowStock = !onlyLowStock || (amountCell && amountCell.classList.contains('low-stock'));
+        const shouldShow = matchesSearch && matchesLowStock;
+        row.style.display = shouldShow ? '' : 'none';
+        if (shouldShow) visibleRows++;
+      });
+
+      if (emptyState) {
+        emptyState.hidden = visibleRows !== 0;
+      }
+    };
+
+    searchInput?.addEventListener('input', applyFilters);
+    filterButton?.addEventListener('click', () => {
+      filterButton.classList.toggle('is-active');
+      applyFilters();
+    });
+
+    applyFilters();
+  });
+
+  /* ------------------------------
      PARALLAX HERO
   ------------------------------- */
   const hero = document.querySelector('.hero');
