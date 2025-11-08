@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             $fileName = $uniqueName . '.' . $allowed[$mime];
                             $target = $uploadDir . $fileName;
-                            $publicUrl = 'pics/gallery/' . $fileName;
+                            $publicUrl = '/pics/gallery/' . $fileName;
 
                             if (move_uploaded_file($file['tmp_name'], $target)) {
                                 $finalUrl = $publicUrl;
@@ -608,7 +608,11 @@ main {
                 $previewHtml = $embed;
             } elseif ($imageUrl !== '') {
                 $src = escapeAttr($imageUrl);
-                $previewHtml = '<img src="' . $src . '" alt="Vorschau">';
+                $previewSrc = $src;
+if (strpos($previewSrc, 'http') !== 0) {
+    $previewSrc = '/' . ltrim($previewSrc, '/');
+}
+$previewHtml = '<img src="' . $previewSrc . '" alt="Vorschau">';
             } else {
                 $previewHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">Keine Vorschau</div>';
             }
@@ -631,7 +635,9 @@ main {
                 <p><strong>Beschreibung:</strong> <?= htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') ?></p>
               <?php endif; ?>
               <?php if ($imageUrl !== ''): ?>
-                <p><strong>Bild/Poster:</strong> <a href="<?= escapeAttr($imageUrl) ?>" target="_blank" rel="noopener">Link öffnen</a></p>
+                <p><strong>Bild/Poster:</strong> 
+<a href="/<?= escapeAttr($imageUrl) ?>" target="_blank" rel="noopener">Link öffnen</a>
+</p>
               <?php endif; ?>
               <?php if ($type === 'video' && $videoUrl !== ''): ?>
                 <p><strong>Video:</strong> <a href="<?= escapeAttr($videoUrl) ?>" target="_blank" rel="noopener">Video öffnen</a></p>
@@ -713,3 +719,4 @@ function buildVideoPreview(string $url): string
     return '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">Video Vorschau nicht möglich</div>';
 }
 ?>
+<script src="../script.js"></script>

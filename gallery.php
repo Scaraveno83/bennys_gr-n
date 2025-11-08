@@ -168,57 +168,69 @@ function escapeAttr(?string $value): string
           $imageUrl = escapeAttr($item['image_url'] ?? '');
           $videoUrl = $hasVideoUrl ? trim((string)($item['video_url'] ?? '')) : '';
           $embedConfig = null;
+          $modalType = 'image';
+          $modalSrc  = $imageUrl;
+          $modalLabel = 'Bild vergrößern';
 
           if ($mediaType === 'video') {
               $embedConfig = buildVideoEmbed($videoUrl !== '' ? $videoUrl : ($item['image_url'] ?? ''));
-              if (!$embedConfig) {
+              if ($embedConfig) {
+                  if ($embedConfig['mode'] === 'iframe') {
+                      $modalType = 'video-iframe';
+                      $modalSrc  = $embedConfig['src'];
+                      $modalLabel = 'Video abspielen';
+                  } else {
+                      $modalType = 'video-file';
+                      $modalSrc  = $embedConfig['src'];
+                      $modalLabel = 'Video abspielen';
+                  }
+              } else {
                   $mediaType = 'image';
+                  $embedConfig = null;
               }
           }
+
+          $badgeLabel = $mediaType === 'video' ? 'Video' : 'Bild';
         ?>
         <article class="media-card glass" data-media-type="<?= $mediaType ?>">
-          <div class="media-frame">
-            <?php if ($mediaType === 'image'): ?>
-              <?php if ($imageUrl !== ''): ?>
-                <img src="<?= $imageUrl ?>" alt="<?= escapeAttr($caption ?: 'Galeriebild') ?>" loading="lazy">
-                <button class="media-open" type="button"
-                        data-type="image"
-                        data-src="<?= $imageUrl ?>"
-                        data-caption="<?= escapeAttr($caption) ?>"
-                        aria-label="Bild vergrößern">
-                  🔍
-                </button>
-              <?php else: ?>
-                <div class="media-placeholder">Keine Vorschau</div>
+          <figure class="media-figure">
+            <div class="media-frame">
+              <span class="media-badge" aria-hidden="true"><?= $badgeLabel ?></span>
+              <?php if ($mediaType === 'image'): ?>
+                <?php if ($imageUrl !== ''): ?>
+                  <img src="<?= $imageUrl ?>" alt="<?= escapeAttr($caption ?: 'Galeriebild') ?>" loading="lazy">
+                <?php else: ?>
+                  <div class="media-placeholder">Keine Vorschau</div>
+                <?php endif; ?>
+              <?php elseif ($embedConfig && $embedConfig['mode'] === 'iframe'): ?>
+                <div class="video-embed">
+                  <iframe src="<?= $embedConfig['src'] ?>" loading="lazy" allowfullscreen title="Video"></iframe>
+                </div>
+              <?php elseif ($embedConfig): ?>
+                <video preload="metadata" muted playsinline loop aria-hidden="true">
+                  <source src="<?= $embedConfig['src'] ?>">
+                  Dein Browser unterstützt das Video-Format nicht.
+                </video>
               <?php endif; ?>
-            <?php elseif ($embedConfig['mode'] === 'iframe'): ?>
-              <div class="video-embed">
-                <iframe src="<?= $embedConfig['src'] ?>" loading="lazy" allowfullscreen title="Video"></iframe>
-              </div>
-              <button class="media-open" type="button"
-                      data-type="video-iframe"
-                      data-src="<?= $embedConfig['src'] ?>"
-                      data-caption="<?= escapeAttr($caption) ?>"
-                      aria-label="Video vergrößern">
-                ▶️
-              </button>
-            <?php else: ?>
-              <video controls preload="metadata">
-                <source src="<?= $embedConfig['src'] ?>">
-                Dein Browser unterstützt das Video-Format nicht.
-              </video>
-              <button class="media-open" type="button"
-                      data-type="video-file"
-                      data-src="<?= $embedConfig['src'] ?>"
-                      data-caption="<?= escapeAttr($caption) ?>"
-                      aria-label="Video vergrößern">
-                ▶️
-              </button>
+              <?php if ($modalSrc !== ''): ?>
+                <button class="media-open" type="button"
+                        data-type="<?= $modalType ?>"
+                        data-src="<?= $modalSrc ?>"
+                        data-caption="<?= escapeAttr($caption) ?>"
+                        aria-label="<?= escapeAttr($modalLabel) ?>">
+                  <span class="media-open-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                      <path d="M12 5a7 7 0 1 0 7 7a7 7 0 0 0-7-7m0-2a9 9 0 1 1-9 9a9 9 0 0 1 9-9m0 4a1 1 0 0 1 1 1v3h3a1 1 0 0 1 0 2h-4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1" />
+                    </svg>
+                  </span>
+                  <span class="sr-only">Ansehen</span>
+                </button>
+              <?php endif; ?>
+            </div>
+            <?php if ($caption !== ''): ?>
+              <figcaption class="media-caption"><?= htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') ?></figcaption>
             <?php endif; ?>
-          </div>
-          <?php if ($caption !== ''): ?>
-            <p class="media-caption"><?= htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') ?></p>
-          <?php endif; ?>
+          </figure>
         </article>
       <?php endforeach; ?>
     <?php else: ?>
