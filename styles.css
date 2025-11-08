@@ -89,7 +89,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--accent);
 }
 .btn-ghost:hover {
-  background: #39ff14;
+  background: var(--accent);
   color: #fff;
   box-shadow: 0 0 15px rgba(57,255,20,.7);
 }
@@ -135,6 +135,62 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   gap: 12px;
   justify-content: center;
+}
+
+/* ===== Page Layout ===== */
+.page-shell {
+  width: min(1180px, calc(100% - 48px));
+  margin: clamp(120px, 14vw, 170px) auto clamp(70px, 10vw, 140px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(32px, 5vw, 56px);
+}
+
+.page-header {
+  text-align: center;
+  display: grid;
+  gap: 12px;
+}
+
+.page-title {
+  font-size: clamp(2.2rem, 4vw, 3rem);
+  margin: 0;
+  color: #fff;
+  letter-spacing: 0.6px;
+  text-shadow: 0 0 22px rgba(57, 255, 20, 0.55);
+}
+
+.page-subtitle {
+  margin: 0 auto;
+  color: var(--text-muted);
+  max-width: 720px;
+  line-height: 1.7;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.section-stack {
+  display: grid;
+  gap: clamp(20px, 4vw, 32px);
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    width: min(1180px, calc(100% - 32px));
+    margin-top: clamp(110px, 16vw, 150px);
+  }
+}
+
+body > main:not(.page-shell):not(.gallery-main) {
+  width: min(1180px, calc(100% - 48px));
+  margin: clamp(120px, 14vw, 170px) auto clamp(70px, 10vw, 140px);
+  display: grid;
+  gap: clamp(28px, 4vw, 44px);
 }
 
 /* ===== Sections / Cards ===== */
@@ -213,6 +269,370 @@ section.visible { opacity: 1; transform: translateY(0); }
 .card.glass:hover::before {
   opacity: 0.6;
   transform: rotate(25deg);
+}
+
+.surface-panel {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: clamp(22px, 4vw, 32px);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 18px;
+}
+
+.card-grid.flexible {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+/* ===== Tables ===== */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+  background: rgba(18, 20, 22, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.08);
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 420px;
+}
+
+table.data-table thead th {
+  text-align: left;
+  padding: 14px 16px;
+  font-weight: 600;
+  color: var(--accent-light);
+  background: rgba(57, 255, 20, 0.12);
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.4px;
+}
+
+table.data-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(57, 255, 20, 0.08);
+  color: var(--text);
+}
+
+table.data-table tbody tr:hover {
+  background: rgba(57, 255, 20, 0.06);
+}
+
+table.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.low-stock {
+  color: var(--accent-light);
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(57, 255, 20, 0.55);
+}
+
+/* ===== Badges & Chips ===== */
+.badge,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.badge.glow {
+  background: linear-gradient(90deg, rgba(57, 255, 20, 0.28), rgba(57, 255, 20, 0.08));
+  color: var(--accent-light);
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.35);
+}
+
+.badge.negative {
+  background: rgba(226, 73, 128, 0.15);
+  color: #ff9dc3;
+  border: 1px solid rgba(226, 73, 128, 0.35);
+}
+
+.chip {
+  background: rgba(57, 255, 20, 0.1);
+  border: 1px solid rgba(57, 255, 20, 0.22);
+  color: var(--accent-light);
+}
+
+/* ===== Forms ===== */
+.form-card {
+  background: rgba(18, 20, 22, 0.78);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: clamp(20px, 4vw, 30px);
+  display: grid;
+  gap: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.form-grid.two-column {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.input-control {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.input-control label {
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+.input-field,
+.input-control select,
+.input-control textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(57, 255, 20, 0.32);
+  background: rgba(10, 12, 13, 0.9);
+  color: var(--text);
+  transition: var(--transition);
+  font: inherit;
+  resize: vertical;
+  min-height: 48px;
+}
+
+.input-control textarea {
+  min-height: 120px;
+}
+
+.input-field:focus,
+.input-control select:focus,
+.input-control textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 14px rgba(57, 255, 20, 0.35);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* ===== Buttons ===== */
+.button-main,
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+}
+
+.button-main {
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  color: #0b0b0b;
+  box-shadow: 0 0 22px rgba(57, 255, 20, 0.45);
+}
+
+.button-main:hover,
+.button-main:focus-visible {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 0 32px rgba(57, 255, 20, 0.65);
+}
+
+.button-secondary {
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.32);
+  color: var(--accent-light);
+}
+
+.button-secondary:hover,
+.button-secondary:focus-visible {
+  background: rgba(57, 255, 20, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.4);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toolbar .button-secondary {
+  border-radius: var(--radius-md);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.headline-glow {
+  color: var(--accent-light);
+  text-shadow: 0 0 16px rgba(57, 255, 20, 0.6);
+}
+
+/* ===== Team Grid ===== */
+.team-card {
+  position: relative;
+  text-align: center;
+  display: grid;
+  gap: 16px;
+}
+
+.team-card .avatar {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 2px solid rgba(57, 255, 20, 0.55);
+  margin: 0 auto;
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.26);
+}
+
+.team-card .rang {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(57, 255, 20, 0.12);
+  border: 1px solid rgba(57, 255, 20, 0.28);
+  color: var(--accent-light);
+  font-weight: 600;
+}
+
+.team-card .rang img {
+  height: 20px;
+}
+
+/* ===== Vehicle Grid ===== */
+.vehicle-grid {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.vehicle-card {
+  display: grid;
+  gap: 12px;
+}
+
+.vehicle-card h3 {
+  margin: 0;
+  color: var(--accent-light);
+}
+
+.vehicle-info {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.vehicle-info strong {
+  color: var(--accent-light);
+}
+
+.pruefdatum {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(57, 255, 20, 0.12);
+  border: 1px solid rgba(57, 255, 20, 0.32);
+  color: var(--accent-light);
+  font-weight: 600;
+  width: fit-content;
+}
+
+.pruefdatum.warn {
+  background: rgba(226, 73, 128, 0.15);
+  border-color: rgba(226, 73, 128, 0.35);
+  color: #ff9dc3;
+  box-shadow: 0 0 16px rgba(226, 73, 128, 0.25);
+}
+
+/* ===== Generic Tables & Forms ===== */
+main table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(18, 20, 22, 0.65);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(57, 255, 20, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.08);
+}
+
+main table thead th {
+  text-align: left;
+  padding: 14px 16px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--accent-light);
+  background: rgba(57, 255, 20, 0.16);
+}
+
+main table tbody td {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(57, 255, 20, 0.08);
+}
+
+main table tbody tr:hover {
+  background: rgba(57, 255, 20, 0.06);
+}
+
+main form {
+  display: grid;
+  gap: 14px;
+}
+
+main form label {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+main form input,
+main form select,
+main form textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(57, 255, 20, 0.28);
+  background: rgba(10, 12, 13, 0.9);
+  color: var(--text);
+  transition: var(--transition);
+}
+
+main form input:focus,
+main form select:focus,
+main form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(57, 255, 20, 0.35);
 }
 
 /* ===== Admin Dashboard Layout ===== */

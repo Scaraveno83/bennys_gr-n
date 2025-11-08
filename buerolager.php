@@ -113,109 +113,93 @@ $verlauf = $pdo->query("SELECT * FROM buero_lager_verlauf ORDER BY datum DESC LI
 <title>📁 Bürolager | Benny’s Werkstatt</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="header.css">
-
-<style>
-main {
-  padding: 120px 40px;
-  max-width: 1100px;
-  margin: 0 auto;
-  color: #fff;
-  text-align: center;
-}
-.card {
-  background: rgba(25,25,25,0.9);
-  border: 1px solid rgba(57,255,20,0.4);
-  border-radius: 15px;
-  padding: 25px;
-  margin-bottom: 40px;
-  box-shadow: 0 0 15px rgba(57,255,20,0.25);
-}
-h2, h3 { color: #76ff65; }
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { border: 1px solid rgba(57,255,20,0.25); padding: 10px; }
-th { background: rgba(57,255,20,0.18); color: #76ff65; }
-tr:hover { background: rgba(57,255,20,0.08); }
-.low-stock { color: #76ff65; font-weight: bold; text-shadow: 0 0 10px rgba(57,255,20,0.6); }
-form select, form input { width:100%; padding:10px; margin-bottom:12px; border-radius:8px; border:1px solid rgba(57,255,20,0.35); background:rgba(20,20,20,0.85); color:#fff; }
-form button {
-  background: linear-gradient(90deg,#39ff14,#76ff65);
-  border: none; padding: 10px 20px; border-radius: 8px;
-  color: #fff; cursor: pointer; transition: .3s;
-}
-form button:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(57,255,20,0.6); }
-.badge { display:inline-block; padding:3px 10px; border-radius:6px; font-weight:bold; }
-.badge.plus { background:rgba(0,200,0,0.2); color:#7CFC00; border:1px solid #7CFC00; }
-.badge.minus { background:rgba(0,200,0,0.2); color:#ff6b6b; border:1px solid #ff6b6b; }
-</style>
 </head>
 <body>
 <?php include 'header.php'; ?>
 
-<main>
-  <h2>📁 Bürolager</h2>
-  <p>Hier können berechtigte Mitarbeiter Büro- und Verwaltungsartikel ein- und auslagern.</p>
+<main class="page-shell">
+  <header class="page-header">
+    <h1 class="page-title">📁 Bürolager</h1>
+    <p class="page-subtitle">Alle Büro- und Verwaltungsartikel an einem zentralen Ort – inklusive Historie.</p>
+  </header>
 
-  <!-- 📦 Bestände -->
-  <div class="card">
-    <h3>📦 Aktuelle Bestände</h3>
-    <table>
-      <thead><tr><th>Produkt</th><th>Bestand</th></tr></thead>
-      <tbody>
-        <?php foreach ($bestand as $produkt => $menge): ?>
-          <tr>
-            <td><?= htmlspecialchars($produkt) ?></td>
-            <td class="<?= $menge < 10 ? 'low-stock' : '' ?>"><?= $menge ?></td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
+  <section class="section-stack">
+    <article class="surface-panel">
+      <header class="toolbar">
+        <h2 class="headline-glow">📦 Aktuelle Bestände</h2>
+      </header>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Produkt</th><th>Bestand</th></tr></thead>
+          <tbody>
+            <?php foreach ($bestand as $produkt => $menge): ?>
+              <tr>
+                <td><?= htmlspecialchars($produkt) ?></td>
+                <td class="<?= $menge < 10 ? 'low-stock' : '' ?>"><?= $menge ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </article>
 
-  <!-- ➕➖ Aktionen -->
-  <div class="card">
-    <h3>➕/➖ Lageraktion durchführen</h3>
-    <form method="post">
-      <label>Produkt:</label>
-      <select name="produkt" required>
-        <option value="">– bitte wählen –</option>
-        <?php foreach ($produkte as $p): ?>
-          <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-        <?php endforeach; ?>
-      </select>
+    <article class="form-card">
+      <h2 class="headline-glow">➕/➖ Lageraktion durchführen</h2>
+      <form method="post" class="form-grid">
+        <div class="input-control">
+          <label for="produkt">Produkt</label>
+          <select id="produkt" name="produkt" required>
+            <option value="">– bitte wählen –</option>
+            <?php foreach ($produkte as $p): ?>
+              <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
 
-      <label>Menge:</label>
-      <input type="number" name="menge" min="1" required>
+        <div class="input-control">
+          <label for="menge">Menge</label>
+          <input id="menge" class="input-field" type="number" name="menge" min="1" required>
+        </div>
 
-      <label>Aktion:</label>
-      <select name="aktion" required>
-        <option value="hinzugefügt">Hinzufügen</option>
-        <option value="entnommen">Entnehmen</option>
-      </select>
+        <div class="input-control">
+          <label for="aktion">Aktion</label>
+          <select id="aktion" name="aktion" required>
+            <option value="hinzugefügt">➕ Hinzugefügt</option>
+            <option value="entnommen">➖ Entnommen</option>
+          </select>
+        </div>
 
-      <button type="submit">Speichern</button>
-    </form>
-  </div>
+        <div class="form-actions">
+          <button type="submit" class="button-main">Aktion speichern</button>
+        </div>
+      </form>
+    </article>
 
-  <!-- 🕒 Verlauf -->
-  <?php if (!empty($verlauf)): ?>
-  <div class="card">
-    <h3>🕒 Letzte Aktionen</h3>
-    <table>
-      <thead><tr><th>Datum</th><th>Produkt</th><th>Menge</th><th>Aktion</th><th>Mitarbeiter</th></tr></thead>
-      <tbody>
-        <?php foreach ($verlauf as $v): ?>
-          <tr>
-            <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
-            <td><?= htmlspecialchars($v['produkt']) ?></td>
-            <td><?= htmlspecialchars($v['menge']) ?></td>
-            <td><span class="badge <?= $v['aktion']==='hinzugefügt'?'plus':'minus' ?>"><?= htmlspecialchars($v['aktion']) ?></span></td>
-            <td><?= htmlspecialchars($v['mitarbeiter']) ?></td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
-  <?php endif; ?>
+    <?php if (!empty($verlauf)): ?>
+      <article class="surface-panel">
+        <header class="toolbar">
+          <h2 class="headline-glow">🕒 Letzte Aktionen</h2>
+          <span class="text-muted">Die neuesten 100 Einträge</span>
+        </header>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Datum</th><th>Produkt</th><th>Menge</th><th>Aktion</th><th>Mitarbeiter</th></tr></thead>
+            <tbody>
+              <?php foreach ($verlauf as $v): ?>
+                <tr>
+                  <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
+                  <td><?= htmlspecialchars($v['produkt']) ?></td>
+                  <td><?= htmlspecialchars($v['menge']) ?></td>
+                  <td><span class="badge <?= $v['aktion']==='hinzugefügt' ? 'glow' : 'negative' ?>"><?= htmlspecialchars($v['aktion']) ?></span></td>
+                  <td><?= htmlspecialchars($v['mitarbeiter']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    <?php endif; ?>
+  </section>
 </main>
 
 <footer id="main-footer">
