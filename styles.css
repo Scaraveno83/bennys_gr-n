@@ -1861,6 +1861,13 @@ main form textarea:focus {
   gap: 10px;
 }
 
+.reactions form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 .reaction-btn {
   background: rgba(57, 255, 20, 0.1);
   border: 1px solid rgba(57, 255, 20, 0.35);
