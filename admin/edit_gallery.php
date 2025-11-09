@@ -104,6 +104,29 @@ function buildVideoEmbed(string $url): ?array
     return ['mode' => 'iframe', 'src' => htmlspecialchars($cleanUrl, ENT_QUOTES, 'UTF-8')];
 }
 
+/**
+ * Gibt eine HTML-Vorschau für einen Video-Link zurück (YouTube, Vimeo, Direktlink).
+ */
+function buildVideoPreview(string $url): string
+{
+    $config = buildVideoEmbed($url);
+    if (!$config) {
+        return '<div class="gallery-admin-placeholder">Video Vorschau nicht möglich</div>';
+    }
+
+    if ($config['mode'] === 'iframe') {
+        $src = htmlspecialchars($config['src'], ENT_QUOTES, 'UTF-8');
+        return '<iframe src="' . $src . '" allowfullscreen loading="lazy" title="Video"></iframe>';
+    }
+
+    if ($config['mode'] === 'video') {
+        $src = htmlspecialchars($config['src'], ENT_QUOTES, 'UTF-8');
+        return '<video controls preload="metadata"><source src="' . $src . '">Video kann nicht geladen werden.</video>';
+    }
+
+    return '<div class="gallery-admin-placeholder">Video Vorschau nicht möglich</div>';
+}
+
 $columnInfo = ensureGallerySchema($pdo);
 $hasMediaType = $columnInfo['media_type'];
 $hasVideoUrl = $columnInfo['video_url'];
@@ -297,303 +320,96 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../styles.css">
-<style>
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-main {
-  flex: 1;
-  padding: 140px 40px 80px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-}
-.admin-headline {
-  text-align: center;
-  margin-bottom: 30px;
-}
-.admin-headline h1 {
-  margin: 0;
-  font-size: clamp(2.2rem, 3vw + 1rem, 3.4rem);
-  text-shadow: 0 0 20px rgba(57,255,20,0.6);
-}
-.admin-headline p {
-  color: #d8ffd8;
-  max-width: 680px;
-  margin: 10px auto 0;
-  line-height: 1.6;
-}
-.notice {
-  margin-bottom: 20px;
-  padding: 14px 18px;
-  border-radius: 12px;
-  font-weight: 600;
-  background: rgba(20, 20, 20, 0.88);
-  border: 1px solid rgba(57,255,20,0.4);
-  box-shadow: 0 0 18px rgba(57,255,20,0.25);
-}
-.notice-success {
-  border-color: rgba(0, 200, 120, 0.5);
-  box-shadow: 0 0 18px rgba(0, 200, 120, 0.25);
-  color: #9dffc8;
-}
-.notice-error {
-  border-color: rgba(255, 80, 80, 0.7);
-  box-shadow: 0 0 18px rgba(255, 80, 80, 0.25);
-  color: #ffbaba;
-}
-.form-card {
-  background: rgba(20,20,20,0.9);
-  border: 1px solid rgba(57,255,20,0.45);
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: 0 0 25px rgba(57,255,20,0.25);
-  margin-bottom: 50px;
-}
-.form-card h2 {
-  margin-top: 0;
-  color: #76ff65;
-}
-.form-toggle {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
-}
-.toggle-pill {
-  background: rgba(57,255,20,0.1);
-  border: 1px solid rgba(57,255,20,0.45);
-  border-radius: 999px;
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  color: #c8ffc8;
-  transition: all .3s ease;
-}
-.toggle-pill input {
-  accent-color: #39ff14;
-}
-.toggle-pill.active {
-  background: linear-gradient(90deg,#39ff14,#76ff65);
-  border-color: transparent;
-  color: #111;
-  box-shadow: 0 0 18px rgba(57,255,20,0.45);
-}
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-  margin-bottom: 18px;
-}
-.form-row label {
-  display: block;
-  font-weight: 600;
-  color: #76ff65;
-  margin-bottom: 6px;
-}
-.form-row input,
-.form-row textarea,
-.form-row select {
-  width: 100%;
-  background: rgba(15,15,15,0.85);
-  border: 1px solid rgba(57,255,20,0.35);
-  border-radius: 10px;
-  padding: 12px;
-  color: #f0fff0;
-  font-family: inherit;
-}
-.form-row input[type="file"] {
-  padding: 10px;
-}
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-.form-actions button {
-  background: linear-gradient(90deg,#39ff14,#76ff65);
-  color: #111;
-  border: none;
-  font-weight: 700;
-  padding: 12px 26px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: transform .25s ease, box-shadow .25s ease;
-}
-.form-actions button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(57,255,20,0.55);
-}
-.media-type-panel {
-  display: none;
-}
-.media-type-panel.active {
-  display: block;
-}
-.media-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 24px;
-}
-.media-card-admin {
-  position: relative;
-  background: rgba(25,25,25,0.85);
-  border: 1px solid rgba(57,255,20,0.4);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 0 20px rgba(57,255,20,0.2);
-}
-.media-card-admin h3 {
-  margin-top: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #76ff65;
-}
-.media-card-admin .media-preview {
-  position: relative;
-  margin: 16px 0;
-  aspect-ratio: 16 / 9;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(0,0,0,0.7);
-}
-.media-card-admin img,
-.media-card-admin iframe,
-.media-card-admin video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  border: none;
-}
-.media-card-admin iframe {
-  background: #000;
-}
-.media-card-admin .media-meta {
-  font-size: 0.95rem;
-  color: #d7ffd7;
-}
-.media-card-admin .media-meta strong {
-  color: #39ff14;
-}
-.media-card-admin .delete-btn {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  background: rgba(255,80,80,0.15);
-  border: 1px solid rgba(255,80,80,0.4);
-  color: #ffb0b0;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all .25s ease;
-}
-.media-card-admin .delete-btn:hover {
-  background: rgba(255,80,80,0.35);
-  color: #fff;
-}
-.type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(57,255,20,0.15);
-  border: 1px solid rgba(57,255,20,0.4);
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-@media (max-width: 768px) {
-  main { padding: 120px 20px 60px; }
-  .form-card { padding: 24px; }
-  .media-card-admin { padding: 16px; }
-}
-</style>
 </head>
 <body>
 <?php include '../header.php'; ?>
 
-<main>
-  <div class="admin-headline">
-    <h1>Galerie verwalten</h1>
-    <p>Pflege hier die Mediengalerie der Startseite. Du kannst hochauflösende Bilder hochladen oder Videos per Link einbetten.</p>
-  </div>
+<main class="inventory-page gallery-admin-page">
+  <section class="inventory-header gallery-admin-header">
+    <h1 class="inventory-title">Galerie verwalten</h1>
+    <p class="inventory-description">
+      Pflege hier die Mediengalerie der Startseite. Du kannst hochauflösende Bilder hochladen oder Videos per Link einbetten.
+    </p>
+    <p class="inventory-info">Aktuelle Einträge: <?= count($items); ?></p>
+  </section>
 
   <?php if ($errorMessage !== ''): ?>
-    <div class="notice notice-error">⚠️ <?= htmlspecialchars($errorMessage) ?></div>
+    <div class="inventory-alert inventory-alert--error">⚠️ <?= htmlspecialchars($errorMessage) ?></div>
   <?php elseif ($successMessage !== ''): ?>
-    <div class="notice notice-success">✅ <?= htmlspecialchars($successMessage) ?></div>
+    <div class="inventory-alert inventory-alert--success">✅ <?= htmlspecialchars($successMessage) ?></div>
   <?php endif; ?>
 
-  <section class="form-card">
-    <h2>Neuen Eintrag hinzufügen</h2>
-    <p>Wähle zuerst den Medientyp und fülle anschließend die entsprechenden Felder aus. Bilder können wahlweise hochgeladen oder per URL eingebunden werden.</p>
+  <section class="inventory-section gallery-admin-section">
+    <header>
+      <h2>Neuen Eintrag hinzufügen</h2>
+      <p class="inventory-section__intro">
+        Wähle zuerst den Medientyp und fülle anschließend die entsprechenden Felder aus. Bilder können wahlweise hochgeladen oder per URL eingebunden werden.
+      </p>
+    </header>
 
-    <form method="POST" enctype="multipart/form-data" id="mediaForm">
-      <div class="form-toggle">
-        <label class="toggle-pill active" data-target="image">
+    <form method="POST" enctype="multipart/form-data" id="mediaForm" class="inventory-form gallery-admin-form">
+      <div class="inventory-radio-group gallery-admin-toggle" role="radiogroup">
+        <label class="inventory-radio is-active" data-target="image">
           <input type="radio" name="media_type" value="image" checked>
           <span>🖼️ Bild</span>
         </label>
-        <label class="toggle-pill" data-target="video">
+        <label class="inventory-radio" data-target="video">
           <input type="radio" name="media_type" value="video" <?= $hasMediaType && $hasVideoUrl ? '' : 'disabled'; ?>>
-          <span>🎬 Video</span>
-          <?php if (!$hasMediaType || !$hasVideoUrl): ?>
-            <small style="font-size:0.75rem;color:#ffbaba;">(DB-Upgrade nötig)</small>
-          <?php endif; ?>
+          <span>
+            🎬 Video
+            <?php if (!$hasMediaType || !$hasVideoUrl): ?>
+              <small>(DB-Upgrade nötig)</small>
+            <?php endif; ?>
+          </span>
         </label>
       </div>
 
-      <div class="media-type-panel active" data-panel="image">
-        <div class="form-row">
-          <div>
+      <div class="gallery-admin-panel is-active" data-panel="image">
+        <div class="form-grid two-column">
+          <div class="input-control">
             <label for="image_url">Bild-URL (optional)</label>
-            <input type="url" name="image_url" id="image_url" placeholder="https://...">
+            <input type="url" name="image_url" id="image_url" class="input-field" placeholder="https://...">
           </div>
-          <div>
+          <div class="input-control">
             <label for="image_file">Oder Bilddatei hochladen</label>
-            <input type="file" name="image_file" id="image_file" accept="image/*">
+            <input type="file" name="image_file" id="image_file" accept="image/*" class="input-field">
           </div>
         </div>
       </div>
 
-      <div class="media-type-panel" data-panel="video">
-        <div class="form-row">
-          <div>
+      <div class="gallery-admin-panel" data-panel="video">
+        <div class="form-grid two-column">
+          <div class="input-control">
             <label for="video_url">Video-Link *</label>
-            <input type="url" name="video_url" id="video_url" placeholder="https://youtu.be/...">
+            <input type="url" name="video_url" id="video_url" class="input-field" placeholder="https://youtu.be/...">
           </div>
-          <div>
+          <div class="input-control">
             <label for="poster_url">Vorschaubild (optional)</label>
-            <input type="url" name="poster_url" id="poster_url" placeholder="https://... (Thumbnail oder Standbild)">
+            <input type="url" name="poster_url" id="poster_url" class="input-field" placeholder="https://... (Thumbnail oder Standbild)">
           </div>
         </div>
       </div>
 
-      <div class="form-row">
-        <div>
+      <div class="form-grid">
+        <div class="input-control input-control--full">
           <label for="alt_text">Beschreibung / Alt-Text</label>
           <textarea name="alt_text" id="alt_text" rows="2" placeholder="Kurze Beschreibung für Screenreader und Tooltips"></textarea>
         </div>
       </div>
 
       <div class="form-actions">
-        <button type="submit">Speichern</button>
+        <button type="submit" class="inventory-submit">Speichern</button>
       </div>
     </form>
   </section>
 
-  <section>
-    <h2 class="section-title">Vorhandene Medien</h2>
+  <section class="inventory-section gallery-admin-existing">
+    <header>
+      <h2>Vorhandene Medien</h2>
+      <p class="inventory-section__intro">Alle vorhandenen Einträge der Galerie mit direktem Zugriff auf Vorschau und Löschfunktion.</p>
+    </header>
     <?php if (count($items) > 0): ?>
-      <div class="media-preview-grid">
+      <div class="gallery-admin-grid">
         <?php foreach ($items as $item): ?>
           <?php
             $type = $hasMediaType ? ($item['media_type'] ?? 'image') : 'image';
@@ -614,30 +430,24 @@ if (strpos($previewSrc, 'http') !== 0) {
 }
 $previewHtml = '<img src="' . $previewSrc . '" alt="Vorschau">';
             } else {
-                $previewHtml = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">Keine Vorschau</div>';
+                $previewHtml = '<div class="gallery-admin-placeholder">Keine Vorschau</div>';
             }
           ?>
-          <article class="media-card-admin">
-            <a class="delete-btn" href="?delete=<?= (int)$item['id'] ?>" onclick="return confirm('Eintrag wirklich löschen?')">🗑️ Löschen</a>
-            <h3>
-              <?php if ($type === 'video'): ?>
-                <span class="type-badge">🎬 Video</span>
-              <?php else: ?>
-                <span class="type-badge">🖼️ Bild</span>
-              <?php endif; ?>
-              #<?= (int)$item['id'] ?>
-            </h3>
-            <div class="media-preview">
+          <article class="gallery-admin-card">
+            <header class="gallery-admin-card__header">
+              <span class="gallery-admin-badge"><?= $type === 'video' ? '🎬 Video' : '🖼️ Bild' ?></span>
+              <a class="gallery-admin-delete" href="?delete=<?= (int)$item['id'] ?>" onclick="return confirm('Eintrag wirklich löschen?')">🗑️ Löschen</a>
+            </header>
+            <div class="gallery-admin-preview">
               <?= $previewHtml ?>
             </div>
-            <div class="media-meta">
+            <div class="gallery-admin-meta">
+              <p class="gallery-admin-meta__id">Eintrag #<?= (int)$item['id'] ?></p>
               <?php if ($caption !== ''): ?>
                 <p><strong>Beschreibung:</strong> <?= htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') ?></p>
               <?php endif; ?>
               <?php if ($imageUrl !== ''): ?>
-                <p><strong>Bild/Poster:</strong> 
-<a href="/<?= escapeAttr($imageUrl) ?>" target="_blank" rel="noopener">Link öffnen</a>
-</p>
+                <p><strong>Bild/Poster:</strong> <a href="/<?= escapeAttr($imageUrl) ?>" target="_blank" rel="noopener">Link öffnen</a></p>
               <?php endif; ?>
               <?php if ($type === 'video' && $videoUrl !== ''): ?>
                 <p><strong>Video:</strong> <a href="<?= escapeAttr($videoUrl) ?>" target="_blank" rel="noopener">Video öffnen</a></p>
@@ -647,12 +457,12 @@ $previewHtml = '<img src="' . $previewSrc . '" alt="Vorschau">';
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <div class="notice" style="text-align:center;">Noch keine Medien vorhanden.</div>
+      <p class="inventory-note">Noch keine Medien vorhanden.</p>
     <?php endif; ?>
   </section>
 
-  <div style="text-align:center; margin-top:40px;">
-    <a class="btn btn-ghost" href="dashboard.php">← Zurück zum Dashboard</a>
+  <div class="gallery-admin-actions">
+    <a class="inventory-submit inventory-submit--ghost" href="dashboard.php">← Zurück zum Dashboard</a>
   </div>
 </main>
 
@@ -663,60 +473,40 @@ $previewHtml = '<img src="' . $previewSrc . '" alt="Vorschau">';
 
 <script>
 (function(){
-  const pills = document.querySelectorAll('.toggle-pill');
-  const panels = document.querySelectorAll('.media-type-panel');
+  const radios = document.querySelectorAll('.gallery-admin-toggle .inventory-radio');
+  const panels = document.querySelectorAll('.gallery-admin-panel');
 
   function switchPanel(target) {
-    pills.forEach(pill => {
-      pill.classList.toggle('active', pill.dataset.target === target);
-      const input = pill.querySelector('input[type="radio"]');
+    radios.forEach(radio => {
+      radio.classList.toggle('is-active', radio.dataset.target === target);
+      const input = radio.querySelector('input[type="radio"]');
       if (input) {
-        input.checked = pill.dataset.target === target;
+        input.checked = radio.dataset.target === target;
       }
     });
 
     panels.forEach(panel => {
-      panel.classList.toggle('active', panel.dataset.panel === target);
+      panel.classList.toggle('is-active', panel.dataset.panel === target);
     });
   }
 
-  pills.forEach(pill => {
-    pill.addEventListener('click', (event) => {
-      if (pill.classList.contains('active')) return;
-      const radio = pill.querySelector('input[type="radio"]');
-      if (radio && radio.disabled) {
+  radios.forEach(radio => {
+    radio.addEventListener('click', (event) => {
+      if (radio.classList.contains('is-active')) {
+        return;
+      }
+
+      const input = radio.querySelector('input[type="radio"]');
+      if (input && input.disabled) {
         event.preventDefault();
         return;
       }
-      switchPanel(pill.dataset.target);
+
+      switchPanel(radio.dataset.target);
     });
   });
 })();
 </script>
+<script src="../script.js"></script>
 </body>
 </html>
-<?php
-/**
- * Gibt eine HTML-Vorschau für einen Video-Link zurück (YouTube, Vimeo, Direktlink).
- */
-function buildVideoPreview(string $url): string
-{
-    $config = buildVideoEmbed($url);
-    if (!$config) {
-        return '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">Video Vorschau nicht möglich</div>';
-    }
-
-    if ($config['mode'] === 'iframe') {
-        $src = htmlspecialchars($config['src'], ENT_QUOTES, 'UTF-8');
-        return '<iframe src="' . $src . '" allowfullscreen loading="lazy" title="Video"></iframe>';
-    }
-
-    if ($config['mode'] === 'video') {
-        $src = htmlspecialchars($config['src'], ENT_QUOTES, 'UTF-8');
-        return '<video controls preload="metadata"><source src="' . $src . '">Video kann nicht geladen werden.</video>';
-    }
-
-    return '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;">Video Vorschau nicht möglich</div>';
-}
-?>
-<script src="../script.js"></script>
