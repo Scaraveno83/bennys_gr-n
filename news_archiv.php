@@ -36,7 +36,6 @@ $offset = ($seite - 1) * $proSeite;
 $countQuery = $pdo->query("SELECT COUNT(*) FROM news $filterSql");
 $gesamt = (int)$countQuery->fetchColumn();
 $seitenGesamt = max(1, (int)ceil($gesamt / $proSeite));
-$anzahlAufSeite = count($alleNews);
 $aktuellerScopeName = $scopeLabels[$sicht] ?? 'News';
 $aktuellerScopeBeschreibung = $scopeDescriptions[$sicht] ?? '';
 
@@ -46,6 +45,7 @@ $stmt->bindValue(':limit', $proSeite, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $alleNews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$anzahlAufSeite = count($alleNews);
 
 // 🔹 Nur Header laden, wenn kein AJAX-Aufruf
 if (!$isAjax):
