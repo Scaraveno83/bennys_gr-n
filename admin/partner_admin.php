@@ -12,153 +12,244 @@ require_once __DIR__ . '/../includes/visibility.php';
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin – Vertragspartner & Preise</title>
 <link rel="stylesheet" href="../styles.css">
-<link rel="stylesheet" href="../header.css">
+<<link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../calendar/calendar.css">
-<style>
-.page-wrap{max-width:1100px;margin:120px auto 60px;padding:0 20px;}
-.tabs {display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
-.tab {padding:8px 12px;border:1px solid rgba(57,255,20,.35);border-radius:10px;cursor:pointer;}
-.tab.active {background:#151515; box-shadow:0 0 8px rgba(57,255,20,.35);}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:900px){.grid2{grid-template-columns:1fr}}
-label{display:block;margin:6px 0 3px;font-weight:600}
-input[type="text"],input[type="number"],textarea,select{
-  width:100%;padding:10px;border-radius:10px;border:1px solid rgba(57,255,20,.35);
-  background:rgba(20,20,20,.9);color:#fff
-}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:8px;border-bottom:1px solid rgba(57,255,20,.25)}
-.small{opacity:.85}
-.logo-prev{max-width:140px;max-height:90px;display:block;margin-top:6px;border-radius:8px}
-.msg{margin-top:6px;font-weight:bold}
-.msg.ok{color:#8fff8f}.msg.err{color:#76ff65}
-.fieldset{border:1px dashed rgba(57,255,20,.35);border-radius:10px;padding:10px}
-.fieldset legend{padding:0 6px;opacity:.9}
-</style>
 </head>
 <body>
 <?php include __DIR__ . '/../header.php'; ?>
-<main class="page-wrap">
-  <h1>🧾 Vertragspartner & Preise – Admin</h1>
-  <div class="tabs">
-    <div class="tab active" data-tab="base">1) Allgemeine Preise</div>
-    <div class="tab" data-tab="partners">2) Vertragspartner</div>
-    <div class="tab" data-tab="cars">3) Fahrzeuge</div>
-    <div class="tab" data-tab="tuning">4) Tuning je Fahrzeug</div>
-    <div class="tab" data-tab="pprices">5) Partner-Preise (Overrides)</div>
+<main class="inventory-page pricing-admin-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">🧾 Vertragspartner &amp; Preise – Admin</h1>
+    <p class="inventory-description">
+      Zentrale Verwaltung für Basispreise, Vertragspartner, Fahrzeuge und deren individuelle Tuning-Daten.
+    </p>
+    <p class="inventory-info">Nutze die Tabs, um alle Bereiche strukturiert zu pflegen.</p>
+  </header>
+
+  <div class="pricing-admin-tabs pricing-center-tabs" role="tablist">
+    <button type="button" class="pricing-tab is-active" data-tab="tab-base">1) Allgemeine Preise</button>
+    <button type="button" class="pricing-tab" data-tab="tab-partners">2) Vertragspartner</button>
+    <button type="button" class="pricing-tab" data-tab="tab-cars">3) Fahrzeuge</button>
+    <button type="button" class="pricing-tab" data-tab="tab-tuning">4) Tuning je Fahrzeug</button>
+    <button type="button" class="pricing-tab" data-tab="tab-pprices">5) Partner-Preise</button>
   </div>
 
   <!-- 1) BASE PRICES -->
-  <section class="cal-card" id="tab-base">
+  <section class="inventory-section pricing-admin-panel is-active" id="tab-base" role="tabpanel">
     <h2>⚙️ Allgemeine Preise (Basis)</h2>
-    <form id="baseForm" class="grid2">
-      <div><label>Reparatur</label><input type="number" name="repair" required></div>
-      <div><label>Wäsche</label><input type="number" name="wash" required></div>
-      <div><label>Benzinkanister</label><input type="number" name="canister" required></div>
-      <div><label>🚚 Anfahrt (Dispatch)</label><input type="number" name="dispatch_fee" required></div>
-      <div><label>Abschleppen (innerorts)</label><input type="number" name="tow_inside" required></div>
-      <div><label>Abschleppen (außerorts)</label><input type="number" name="tow_outside" required></div>
-      <div><label>Öffentlicher Tuning-Aufschlag (%)</label><input type="number" step="0.1" name="tuning_markup_public" required></div>
-      <div><button class="btn-primary" type="submit">Speichern</button></div>
+    <form id="baseForm" class="inventory-form pricing-admin-grid">
+      <div class="input-control">
+        <label for="base_repair">Reparatur</label>
+        <input id="base_repair" class="input-field" type="number" name="repair" required>
+      </div>
+      <div class="input-control">
+        <label for="base_wash">Wäsche</label>
+        <input id="base_wash" class="input-field" type="number" name="wash" required>
+      </div>
+      <div class="input-control">
+        <label for="base_canister">Benzinkanister</label>
+        <input id="base_canister" class="input-field" type="number" name="canister" required>
+      </div>
+      <div class="input-control">
+        <label for="base_dispatch">🚚 Anfahrt (Dispatch)</label>
+        <input id="base_dispatch" class="input-field" type="number" name="dispatch_fee" required>
+      </div>
+      <div class="input-control">
+        <label for="base_tow_in">Abschleppen (innerorts)</label>
+        <input id="base_tow_in" class="input-field" type="number" name="tow_inside" required>
+      </div>
+      <div class="input-control">
+        <label for="base_tow_out">Abschleppen (außerorts)</label>
+        <input id="base_tow_out" class="input-field" type="number" name="tow_outside" required>
+      </div>
+      <div class="input-control">
+        <label for="base_tuning_public">Öffentlicher Tuning-Aufschlag (%)</label>
+        <input id="base_tuning_public" class="input-field" type="number" step="0.1" name="tuning_markup_public" required>
+      </div>
+      <div class="pricing-admin-actions">
+        <button class="btn-primary" type="submit">Speichern</button>
+      </div>
     </form>
-    <div id="baseMsg" class="msg"></div>
+    <div id="baseMsg" class="pricing-admin-message" aria-live="polite"></div>
   </section>
 
   <!-- 2) PARTNERS -->
-  <section class="cal-card" id="tab-partners" style="display:none">
+  <section class="inventory-section pricing-admin-panel" id="tab-partners" role="tabpanel" hidden>
     <h2>🏢 Vertragspartner</h2>
-    <form id="partnerCreate" class="grid2">
-      <div><label>Name</label><input type="text" name="name" required></div>
-      <div><label>Partner-Tuning-Modifikator (%)</label><input type="number" step="0.1" name="tuning_modifier_percent" value="0"></div>
-      <div style="grid-column:1/-1"><label>Bemerkungen</label><textarea name="remarks" rows="3"></textarea></div>
-      <div><button class="btn-primary" type="submit">Anlegen</button></div>
+    <form id="partnerCreate" class="inventory-form pricing-admin-grid">
+      <div class="input-control">
+        <label for="partner_name">Name</label>
+        <input id="partner_name" class="input-field" type="text" name="name" required>
+      </div>
+      <div class="input-control">
+        <label for="partner_tuning">Partner-Tuning-Modifikator (%)</label>
+        <input id="partner_tuning" class="input-field" type="number" step="0.1" name="tuning_modifier_percent" value="0">
+      </div>
+      <div class="input-control input-control--full">
+        <label for="partner_remarks">Bemerkungen</label>
+        <textarea id="partner_remarks" class="input-field" name="remarks" rows="3"></textarea>
+      </div>
+      <div class="pricing-admin-actions">
+        <button class="btn-primary" type="submit">Anlegen</button>
+      </div>
     </form>
-    <div id="pList" style="margin-top:12px"></div>
+    <div id="pList" class="pricing-admin-list"></div>
   </section>
 
   <!-- 3) CARS -->
-  <section class="cal-card" id="tab-cars" style="display:none">
+  <section class="inventory-section pricing-admin-panel" id="tab-cars" role="tabpanel" hidden>
     <h2>🚗 Fahrzeuge verwalten</h2>
-    <div class="grid2">
-      <div>
-        <label>Partner</label>
-        <select id="carPartner"></select>
+    <div class="pricing-admin-grid">
+      <div class="input-control">
+        <label for="carPartner">Partner</label>
+        <select id="carPartner" class="input-field"></select>
       </div>
-      <div></div>
     </div>
-    <form id="carCreate" class="grid2" style="margin-top:8px">
-      <div><label>Fahrzeugname</label><input type="text" name="car_name" required></div>
-      <div><label>Notizen</label><input type="text" name="notes"></div>
-      <div><button class="btn-primary" type="submit">Fahrzeug hinzufügen</button></div>
+    <form id="carCreate" class="inventory-form pricing-admin-grid">
+      <div class="input-control">
+        <label for="car_name">Fahrzeugname</label>
+        <input id="car_name" class="input-field" type="text" name="car_name" required>
+      </div>
+      <div class="input-control">
+        <label for="car_notes">Notizen</label>
+        <input id="car_notes" class="input-field" type="text" name="notes">
+      </div>
+      <div class="pricing-admin-actions">
+        <button class="btn-primary" type="submit">Fahrzeug hinzufügen</button>
+      </div>
     </form>
-    <div id="carList" style="margin-top:12px"></div>
+    <div id="carList" class="pricing-admin-list"></div>
   </section>
 
   <!-- 4) TUNING -->
-  <section class="cal-card" id="tab-tuning" style="display:none">
+  <section class="inventory-section pricing-admin-panel" id="tab-tuning" role="tabpanel" hidden>
     <h2>🛠️ Tuning (Key/Value)</h2>
-    <div class="grid2">
-      <div><label>Partner</label><select id="tunPartner"></select></div>
-      <div><label>Fahrzeug</label><select id="tunCar"></select></div>
+    <div class="pricing-admin-grid">
+      <div class="input-control">
+        <label for="tunPartner">Partner</label>
+        <select id="tunPartner" class="input-field"></select>
+      </div>
+      <div class="input-control">
+        <label for="tunCar">Fahrzeug</label>
+        <select id="tunCar" class="input-field"></select>
+      </div>
     </div>
-    <form id="tunCreate" class="grid2" style="margin-top:8px">
-      <div><label>Teil / Feld (z. B. „Primär“)</label><input type="text" name="part" required></div>
-      <div><label>Wert (z. B. „Chameleon Light Blue“)</label><input type="text" name="value" required></div>
-      <div><button class="btn-primary" type="submit">Hinzufügen</button></div>
+    <form id="tunCreate" class="inventory-form pricing-admin-grid">
+      <div class="input-control">
+        <label for="tuning_part">Teil / Feld (z. B. „Primär“)</label>
+        <input id="tuning_part" class="input-field" type="text" name="part" required>
+      </div>
+      <div class="input-control">
+        <label for="tuning_value">Wert (z. B. „Chameleon Light Blue“)</label>
+        <input id="tuning_value" class="input-field" type="text" name="value" required>
+      </div>
+      <div class="pricing-admin-actions">
+        <button class="btn-primary" type="submit">Hinzufügen</button>
+      </div>
     </form>
-    <div id="tunList" style="margin-top:12px"></div>
+    <div id="tunList" class="pricing-admin-list"></div>
   </section>
 
   <!-- 5) PARTNER PRICES -->
-  <section class="cal-card" id="tab-pprices" style="display:none">
+  <section class="inventory-section pricing-admin-panel" id="tab-pprices" role="tabpanel" hidden>
     <h2>💰 Partner-Preise (Overrides)</h2>
-    <div class="grid2">
-      <div><label>Partner</label><select id="ppPartner"></select></div>
+    <div class="pricing-admin-grid">
+      <div class="input-control">
+        <label for="ppPartner">Partner</label>
+        <select id="ppPartner" class="input-field"></select>
+      </div>
     </div>
 
-    <form id="ppForm" class="grid2" style="margin-top:8px">
-      <fieldset class="fieldset" style="grid-column:1/-1">
+    <form id="ppForm" class="inventory-form pricing-admin-grid">
+      <fieldset class="pricing-admin-fieldset input-control--full">
         <legend>Werkstatt</legend>
-        <div class="grid2">
-          <div><label>Reparatur (leer = Basis)</label><input type="number" name="repair" placeholder="leer = Basis"></div>
-          <div><label>Wäsche (leer = Basis)</label><input type="number" name="wash" placeholder="leer = Basis"></div>
-          <div><label>Benzinkanister (leer = Basis)</label><input type="number" name="canister" placeholder="leer = Basis"></div>
-          <div><label>Abschleppen (innerorts)</label><input type="number" name="tow_inside" placeholder="leer = Basis"></div>
-          <div><label>Abschleppen (außerorts)</label><input type="number" name="tow_outside" placeholder="leer = Basis"></div>
+        <div class="pricing-admin-grid">
+          <div class="input-control">
+            <label for="pp_repair">Reparatur (leer = Basis)</label>
+            <input id="pp_repair" class="input-field" type="number" name="repair" placeholder="leer = Basis">
+          </div>
+          <div class="input-control">
+            <label for="pp_wash">Wäsche (leer = Basis)</label>
+            <input id="pp_wash" class="input-field" type="number" name="wash" placeholder="leer = Basis">
+          </div>
+          <div class="input-control">
+            <label for="pp_canister">Benzinkanister (leer = Basis)</label>
+            <input id="pp_canister" class="input-field" type="number" name="canister" placeholder="leer = Basis">
+          </div>
+          <div class="input-control">
+            <label for="pp_tow_in">Abschleppen (innerorts)</label>
+            <input id="pp_tow_in" class="input-field" type="number" name="tow_inside" placeholder="leer = Basis">
+          </div>
+          <div class="input-control">
+            <label for="pp_tow_out">Abschleppen (außerorts)</label>
+            <input id="pp_tow_out" class="input-field" type="number" name="tow_outside" placeholder="leer = Basis">
+          </div>
         </div>
       </fieldset>
 
-      <fieldset class="fieldset" style="grid-column:1/-1">
+      <fieldset class="pricing-admin-fieldset input-control--full">
         <legend>Außerhalb (Dispatch)</legend>
-        <div class="grid2">
-          <div><label>Reparatur (außerhalb)</label><input type="number" name="repair_out" placeholder="leer = Basis + Anfahrt"></div>
-          <div><label>Wäsche (außerhalb)</label><input type="number" name="wash_out" placeholder="leer = Basis + Anfahrt"></div>
-          <div><label>Benzinkanister (außerhalb)</label><input type="number" name="canister_out" placeholder="leer = Basis + Anfahrt"></div>
+        <div class="pricing-admin-grid">
+          <div class="input-control">
+            <label for="pp_repair_out">Reparatur (außerhalb)</label>
+            <input id="pp_repair_out" class="input-field" type="number" name="repair_out" placeholder="leer = Basis + Anfahrt">
+          </div>
+          <div class="input-control">
+            <label for="pp_wash_out">Wäsche (außerhalb)</label>
+            <input id="pp_wash_out" class="input-field" type="number" name="wash_out" placeholder="leer = Basis + Anfahrt">
+          </div>
+          <div class="input-control">
+            <label for="pp_canister_out">Benzinkanister (außerhalb)</label>
+            <input id="pp_canister_out" class="input-field" type="number" name="canister_out" placeholder="leer = Basis + Anfahrt">
+          </div>
         </div>
       </fieldset>
 
-      <div style="grid-column:1/-1">
-        <label>Partner-Tuning-Modifikator (%)</label>
-        <input type="number" step="0.1" name="tuning_modifier_percent">
+      <div class="input-control input-control--full">
+        <label for="pp_tuning">Partner-Tuning-Modifikator (%)</label>
+        <input id="pp_tuning" class="input-field" type="number" step="0.1" name="tuning_modifier_percent">
       </div>
 
-      <div><button class="btn-primary" type="submit">Speichern</button></div>
+      <div class="pricing-admin-actions">
+        <button class="btn-primary" type="submit">Speichern</button>
+      </div>
     </form>
-    <div id="ppMsg" class="msg"></div>
+    <div id="ppMsg" class="pricing-admin-message" aria-live="polite"></div>
   </section>
 </main>
 
 <script>
 const API = '../includes/partner_api.php';
 
+function setPanelVisibility(panel, visible) {
+  if (visible) {
+    panel.classList.add('is-active');
+    panel.removeAttribute('hidden');
+  } else {
+    panel.classList.remove('is-active');
+    panel.setAttribute('hidden', '');
+  }
+}
+
+function safeGet(source, key, fallback) {
+  if (source && Object.prototype.hasOwnProperty.call(source, key) && source[key] !== null && source[key] !== undefined) {
+    return source[key];
+  }
+  return fallback;
+}
+
 // Tabs
-document.querySelectorAll('.tab').forEach(t=>{
-  t.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    const id = 'tab-'+t.dataset.tab;
-    document.querySelectorAll('main .cal-card').forEach(s=>s.style.display='none');
-    document.getElementById(id).style.display='block';
+const adminTabs = document.querySelectorAll('.pricing-admin-tabs .pricing-tab');
+const adminPanels = document.querySelectorAll('.pricing-admin-panel');
+
+adminTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const targetId = tab.dataset.tab;
+    adminTabs.forEach((btn) => btn.classList.toggle('is-active', btn === tab));
+    adminPanels.forEach((panel) => {
+      const isMatch = panel.id === targetId;
+      setPanelVisibility(panel, isMatch);
+    });
   });
 });
 
@@ -166,8 +257,11 @@ document.querySelectorAll('.tab').forEach(t=>{
 async function loadBase(){
   const r = await fetch(API+'?action=get_base_prices'); const j = await r.json();
   const f = document.getElementById('baseForm');
+  [const baseValues = j && j.base ? j.base : {};
   ['repair','wash','canister','dispatch_fee','tow_inside','tow_outside','tuning_markup_public'].forEach(k=>{
-    if (f.elements[k]) f.elements[k].value = j.base?.[k] ?? '';
+    if (f.elements[k]) {
+      f.elements[k].value = safeGet(baseValues, k, '');
+    }
   });
 }
 document.getElementById('baseForm').addEventListener('submit', async (e)=>{
@@ -176,7 +270,13 @@ document.getElementById('baseForm').addEventListener('submit', async (e)=>{
   fd.forEach((v,k)=>payload[k]=v);
   const res = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_base_prices',...payload})});
   const j = await res.json(); const msg = document.getElementById('baseMsg');
-  if (j.ok){ msg.textContent='Gespeichert.'; msg.className='msg ok'; } else { msg.textContent=j.error||'Fehler'; msg.className='msg err'; }
+  if (j.ok){
+    msg.textContent='Gespeichert.';
+    msg.className='pricing-admin-message pricing-admin-message--ok';
+  } else {
+    msg.textContent=j.error||'Fehler';
+    msg.className='pricing-admin-message pricing-admin-message--error';
+  }
 });
 
 // 2) Partners
@@ -184,25 +284,33 @@ async function renderPartners(){
   const box = document.getElementById('pList');
   const r = await fetch(API+'?action=list_partners'); const j = await r.json();
   box.innerHTML = '';
-  const table = document.createElement('table'); table.className='table';
+  if (!j.items || !j.items.length) {
+    const empty = document.createElement('p');
+    empty.className = 'pricing-admin-empty';
+    empty.textContent = 'Keine Vertragspartner vorhanden.';
+    box.appendChild(empty);
+    return;
+  }
+  const table = document.createElement('table');
+  table.className='data-table pricing-admin-table';
   table.innerHTML = `<thead><tr><th>Logo</th><th>Name</th><th>Tuning %</th><th>Bemerkung</th><th>Aktion</th></tr></thead>`;
   const tb = document.createElement('tbody');
   (j.items||[]).forEach(p=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.logo_url?`<img src="${p.logo_url}" class="logo-prev">`:'—'}
-          <form class="logoForm" data-id="${p.id}" enctype="multipart/form-data" style="margin-top:6px">
-            <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" required>
-            <button class="btn-primary" type="submit" style="margin-top:6px">Upload</button>
-          </form>
-      </td>
-      <td><input type="text" value="${p.name||''}" class="in-name"></td>
-      <td><input type="number" step="0.1" value="${p.tuning_modifier_percent||0}" class="in-mod"></td>
-      <td><input type="text" value="${p.remarks||''}" class="in-rem"></td>
-      <td>
-        <button class="btn-primary btn-save">Speichern</button>
-        <button class="btn-ghost btn-del">Löschen</button>
-      </td>`;
+    tr.innerHTML = `␊
+      <td>${p.logo_url?`<img src="${p.logo_url}" class="pricing-admin-logo" alt="Logo ${p.name||''}">`:'—'}
+          <form class="logoForm pricing-admin-logo-form" data-id="${p.id}" enctype="multipart/form-data">
+            <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" required>␊
+            <button class="btn-primary pricing-admin-inline-btn" type="submit">Upload</button>
+          </form>␊
+      </td>␊
+      <td><input type="text" value="${p.name||''}" class="in-name pricing-admin-inline-input"></td>
+      <td><input type="number" step="0.1" value="${p.tuning_modifier_percent||0}" class="in-mod pricing-admin-inline-input"></td>
+      <td><input type="text" value="${p.remarks||''}" class="in-rem pricing-admin-inline-input"></td>
+      <td>␊
+        <button class="btn-primary btn-save pricing-admin-inline-btn">Speichern</button>
+        <button class="btn-ghost btn-del pricing-admin-inline-btn">Löschen</button>
+      </td>`;␊
     tb.appendChild(tr);
 
     tr.querySelector('.logoForm').addEventListener('submit', async (e)=>{
@@ -243,10 +351,12 @@ async function loadCarList(){
   const r = await fetch(API+'?action=list_cars&partner_id='+encodeURIComponent(pid)); const j= await r.json();
   const box = document.getElementById('carList'); box.innerHTML='';
   const ul = document.createElement('ul');
+  ul.className = 'pricing-admin-listing';
   (j.items||[]).forEach(c=>{
     const li = document.createElement('li');
-    li.innerHTML = `${c.car_name} ${c.notes?'<span class="small">– '+c.notes+'</span>':''}
-                    <button class="btn-ghost" data-id="${c.id}" style="margin-left:10px">Löschen</button>`;
+    li.className = 'pricing-admin-listing__item';
+    li.innerHTML = `<span class="pricing-admin-car-name">${c.car_name}</span>${c.notes?`<span class="pricing-admin-note"> – ${c.notes}</span>`:''}
+                    <button class="btn-ghost pricing-admin-inline-btn" data-id="${c.id}">Löschen</button>`;
     ul.appendChild(li);
     li.querySelector('button').addEventListener('click', async ()=>{
       if (!confirm('Fahrzeug löschen?')) return;
@@ -281,9 +391,11 @@ async function renderTunList(){
   if (!cid) return;
   const r = await fetch(API+'?action=list_tuning&car_id='+encodeURIComponent(cid)); const j = await r.json();
   const ul = document.createElement('ul');
+  ul.className = 'pricing-admin-listing';
   (j.items||[]).forEach(t=>{
     const li = document.createElement('li');
-    li.innerHTML = `<b>${t.part}</b>: ${t.value} <button class="btn-ghost" data-id="${t.id}" style="margin-left:10px">Löschen</button>`;
+    li.className = 'pricing-admin-listing__item';
+    li.innerHTML = `<span class="pricing-admin-car-name">${t.part}</span>: <span class="pricing-admin-note">${t.value}</span> <button class="btn-ghost pricing-admin-inline-btn" data-id="${t.id}">Löschen</button>`;
     ul.appendChild(li);
     li.querySelector('button').addEventListener('click', async ()=>{
       await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_tuning',id:t.id})});
@@ -309,19 +421,29 @@ async function loadPartnerPriceForm(){
   if (!pid) return;
   const r = await fetch(API+'?action=get_partner_prices&partner_id='+encodeURIComponent(pid)); const j = await r.json();
   const f = document.getElementById('ppForm');
+  const overrides = j && j.override ? j.override : {};
   ['repair','repair_out','wash','wash_out','canister','canister_out','tow_inside','tow_outside'].forEach(s=>{
-    if (f.elements[s]) f.elements[s].value = j.override?.[s] ?? '';
+    if (f.elements[s]) {
+      f.elements[s].value = safeGet(overrides, s, '');
+    }
   });
-  f.elements['tuning_modifier_percent'].value = j.partner?.tuning_modifier_percent ?? 0;
+  const partnerData = j && j.partner ? j.partner : {};
+  f.elements['tuning_modifier_percent'].value = safeGet(partnerData, 'tuning_modifier_percent', 0);
 }
 document.getElementById('ppForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const pid = document.getElementById('ppPartner').value; if(!pid) return;
   const fd = new FormData(e.target); const payload={}; fd.forEach((v,k)=>payload[k]=v);
   payload['partner_id']=pid;
-  const r = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_partner_prices',...payload})});
+ const r = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_partner_prices',...payload})});
   const j = await r.json(); const m = document.getElementById('ppMsg');
-  if (j.ok){ m.textContent='Gespeichert.'; m.className='msg ok'; } else { m.textContent=j.error||'Fehler'; m.className='msg err'; }
+  if (j.ok){
+    m.textContent='Gespeichert.';
+    m.className='pricing-admin-message pricing-admin-message--ok';
+  } else {
+    m.textContent=j.error||'Fehler';
+    m.className='pricing-admin-message pricing-admin-message--error';
+  }
 });
 
 // Shared: Partner-Selects laden
@@ -348,5 +470,3 @@ document.getElementById('ppPartner').addEventListener('change', loadPartnerPrice
 </footer>
 
 <script src="../script.js"></script>
-</body>
-</html>
