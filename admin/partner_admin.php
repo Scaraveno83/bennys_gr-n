@@ -11,8 +11,8 @@ require_once __DIR__ . '/../includes/visibility.php';
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin – Vertragspartner & Preise</title>
-<link rel="stylesheet" href="../styles.css">
-<<link rel="stylesheet" href="../header.css">
+<link rel="stylesheet" href="../styles.css">␊
+<link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../calendar/calendar.css">
 </head>
 <body>
@@ -257,7 +257,7 @@ adminTabs.forEach((tab) => {
 async function loadBase(){
   const r = await fetch(API+'?action=get_base_prices'); const j = await r.json();
   const f = document.getElementById('baseForm');
-  [const baseValues = j && j.base ? j.base : {};
+  const baseValues = j && j.base ? j.base : {};
   ['repair','wash','canister','dispatch_fee','tow_inside','tow_outside','tuning_markup_public'].forEach(k=>{
     if (f.elements[k]) {
       f.elements[k].value = safeGet(baseValues, k, '');
