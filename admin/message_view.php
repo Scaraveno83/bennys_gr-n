@@ -15,7 +15,7 @@ $id = (int)($_GET['id'] ?? 0);
 
 /* === Nachricht abrufen === */
 $stmt = $pdo->prepare("
-  SELECT 
+  SELECT
     m.*,
     COALESCE(s_m.name, ua_s.username) AS sender_name,
     COALESCE(s_m.rang, 'Administrator') AS sender_rang,
@@ -67,61 +67,73 @@ $rang_icons = [
   "Praktikant/in" => "praktikant.png",
   "Administrator" => "admin.png"
 ];
+
+$subject = $msg['subject'] ?: '(Kein Betreff)';
+$replySubject = preg_match('/^re:/i', $subject) ? $subject : 'Re: ' . $subject;
+$backUrl = 'messages.php' . ($msg['sender_id'] == $userId ? '?tab=sent' : '?tab=inbox');
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title><?= htmlspecialchars($msg['subject'] ?: '(Kein Betreff)') ?></title>
+<title><?= htmlspecialchars($subject) ?></title>
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../styles.css">
-<style>
-main { max-width: 800px; margin: 100px auto; padding: 0 20px; color: #fff; }
-.message-box { background: rgba(25,25,25,0.85); padding: 20px; border-radius: 10px; border: 1px solid rgba(57,255,20,0.3); }
-.header { display:flex; align-items:center; gap:10px; margin-bottom:15px; }
-.avatar-icon { width:32px; height:32px; filter:drop-shadow(0 0 5px rgba(57,255,20,.6)); }
-.rang-badge { background:rgba(57,255,20,.25); border:1px solid rgba(57,255,20,.5); padding:3px 6px; border-radius:6px; font-size:.8rem; color:#fff; margin-left:5px; }
-.btn-small { padding:8px 14px; background:linear-gradient(90deg,#39ff14,#76ff65); border:none; border-radius:6px; color:#fff; cursor:pointer; text-decoration:none; transition:.25s; }
-.btn-small:hover { box-shadow:0 0 10px rgba(57,255,20,.6); transform:scale(1.05); }
-.delete-btn { background:#118f2b; border:1px solid rgba(57,255,20,0.6); border-radius:6px; color:#fff; padding:8px 14px; cursor:pointer; transition:all 0.25s ease; box-shadow:0 0 14px rgba(57,255,20,0.35); }
-.delete-btn:hover { background:#39ff14; transform:scale(1.05); }
-h3 { color:#c8ffd5; margin-bottom:10px; }
-p { line-height:1.5; white-space:pre-line; }
-.actions { display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
-</style>
 </head>
 <body>
 <?php include __DIR__ . '/../header.php'; ?>
 
-<main>
-  <h2 class="section-title">📨 Nachricht</h2>
+<main class="inventory-page message-view-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">📨 Nachricht ansehen</h1>
+    <p class="inventory-description">Betreff: <?= htmlspecialchars($subject) ?></p>
+    <p class="inventory-info">Gesendet am <?= date('d.m.Y H:i', strtotime($msg['sent_at'])) ?></p>
+  </header>
 
-  <div class="message-box" id="msg-box">
-    <div class="header">
-      <?php $icon = $rang_icons[$msg['sender_rang']] ?? 'default.png'; ?>
-      <img src="../pics/icons/<?= htmlspecialchars($icon) ?>" class="avatar-icon" alt="">
-      <strong><?= htmlspecialchars($msg['sender_name']) ?></strong>
-      <span class="rang-badge"><?= htmlspecialchars($msg['sender_rang']) ?></span>
-      <span style="margin-left:auto;opacity:.8;">📅 <?= date('d.m.Y H:i', strtotime($msg['sent_at'])) ?></span>
-    </div>
+  <section class="inventory-section">
+    <article class="message-detail" id="msg-box">
+      <div class="message-detail__participants">
+        <?php $senderIcon = $rang_icons[$msg['sender_rang']] ?? 'default.png'; ?>
+        <div class="message-participant-card">
+          <span class="message-participant-card__label">Von</span>
+          <img src="../pics/icons/<?= htmlspecialchars($senderIcon) ?>" class="message-participant-card__avatar" alt="">
+          <div class="message-participant-card__meta">
+            <span class="message-participant-card__name"><?= htmlspecialchars($msg['sender_name']) ?></span>
+            <span class="rang-badge"><?= htmlspecialchars($msg['sender_rang']) ?></span>
+          </div>
+        </div>
 
-    <h3><?= htmlspecialchars($msg['subject'] ?: '(Kein Betreff)') ?></h3>
-    <p><?= nl2br(htmlspecialchars($msg['message'])) ?></p>
+        <?php $receiverIcon = $rang_icons[$msg['receiver_rang']] ?? 'default.png'; ?>
+        <div class="message-participant-card message-participant-card--receiver">
+          <span class="message-participant-card__label">An</span>
+          <img src="../pics/icons/<?= htmlspecialchars($receiverIcon) ?>" class="message-participant-card__avatar" alt="">
+          <div class="message-participant-card__meta">
+            <span class="message-participant-card__name"><?= htmlspecialchars($msg['receiver_name']) ?></span>
+            <span class="rang-badge"><?= htmlspecialchars($msg['receiver_rang']) ?></span>
+          </div>
+        </div>
+      </div>
 
-    <div class="actions">
-      <a href="message_new.php?reply_to=<?= (int)$msg['sender_id'] ?>" class="btn-small">↩️ Antworten</a>
-      <a href="messages.php" class="btn-small">⬅️ Zurück</a>
+      <div class="message-detail__subject">
+        <h2><?= htmlspecialchars($subject) ?></h2>
+      </div>
 
-      <!-- 🗑️ Löschbutton -->
-      <form method="POST" action="" id="deleteForm" style="display:inline;">
-        <input type="hidden" name="delete_id" value="<?= (int)$msg['id'] ?>">
-        <button type="submit" class="delete-btn">🗑️ Löschen</button>
-      </form>
-    </div>
-  </div>
+      <div class="message-detail__body">
+        <?= nl2br(htmlspecialchars($msg['message'])) ?>
+      </div>
+
+      <div class="message-detail__actions">
+        <a href="message_new.php?reply_to=<?= (int)$msg['sender_id'] ?>&reply_subject=<?= urlencode($replySubject) ?>" class="inventory-submit inventory-submit--small">↩️ Antworten</a>
+        <a href="<?= htmlspecialchars($backUrl) ?>" class="inventory-submit inventory-submit--small inventory-submit--ghost">⬅️ Zurück</a>
+        <form method="POST" action="" id="deleteForm" class="message-detail__delete-form">
+          <input type="hidden" name="delete_id" value="<?= (int)$msg['id'] ?>">
+          <button type="submit" class="inventory-submit inventory-submit--small inventory-submit--danger">🗑️ Löschen</button>
+        </form>
+      </div>
+    </article>
+  </section>
 </main>
 
-<script src="../script.js"></script>
 <script>
 document.getElementById('deleteForm')?.addEventListener('submit', async e => {
   e.preventDefault();
@@ -133,7 +145,7 @@ document.getElementById('deleteForm')?.addEventListener('submit', async e => {
     const msgBox = document.getElementById('msg-box');
     msgBox.style.transition = '0.3s';
     msgBox.style.opacity = '0';
-    setTimeout(() => window.location.href = 'messages.php', 400);
+    setTimeout(() => window.location.href = '<?= $backUrl ?>', 400);
   } else {
     alert('Fehler beim Löschen.');
   }

@@ -71,6 +71,15 @@ if ($tab === 'sent') {
   $stmt->execute(['user_id' => $userId, 'user_role' => $userRole]);
 }
 $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$totalMessages = count($messages);
+$unreadCount = 0;
+if ($tab === 'inbox') {
+  foreach ($messages as $message) {
+    if (empty($message['is_read'])) {
+      $unreadCount++;
+    }
+  }
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -79,78 +88,90 @@ $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <title>📨 Nachrichten</title>
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../styles.css">
-<style>
-main { max-width: 1000px; margin: 100px auto; padding: 0 20px; color: #fff; }
-.tabs { display:flex; justify-content:center; gap:12px; margin-bottom:25px; flex-wrap:wrap; }
-.tabs a { padding:10px 20px; border:2px solid #39ff14; border-radius:8px; color:#a8ffba; text-decoration:none; font-weight:bold; transition:.3s; }
-.tabs a.active, .tabs a:hover { background:linear-gradient(90deg,#39ff14,#76ff65); color:#fff; transform:scale(1.05); }
-.table-wrapper { overflow-x:auto; }
-table { width:100%; border-collapse:collapse; }
-th, td { padding:10px; border-bottom:1px solid rgba(255,255,255,0.1); text-align:left; vertical-align:middle; }
-th { background:rgba(57,255,20,0.2); color:#c8ffd5; }
-tr:hover { background:rgba(57,255,20,0.05); }
-.avatar-icon { width:26px; height:26px; vertical-align:middle; filter:drop-shadow(0 0 5px rgba(57,255,20,.55)); margin-right:6px; }
-.rang-badge { background:rgba(57,255,20,.25); border:1px solid rgba(57,255,20,.5); padding:3px 6px; border-radius:6px; font-size:.8rem; color:#fff; margin-left:5px; }
-.btn-small { padding:6px 10px; background:linear-gradient(90deg,#39ff14,#76ff65); border:none; border-radius:6px; color:#fff; cursor:pointer; text-decoration:none; transition:.25s; }
-.btn-small:hover { transform:scale(1.05); }
-.delete-btn { background:#118f2b; border:1px solid rgba(57,255,20,0.6); color:#fff; padding:6px 10px; border-radius:6px; cursor:pointer; transition:.2s; box-shadow:0 0 12px rgba(57,255,20,0.3); }
-.delete-btn:hover { background:#39ff14; transform:scale(1.05); }
-.unread { font-weight:bold; color:#fff; }
-.actions { display:flex; gap:8px; justify-content:flex-end; }
-</style>
 </head>
 <body>
 <?php include __DIR__ . '/../header.php'; ?>
-<main>
-  <h2 class="section-title">📨 Nachrichten</h2>
+<main class="inventory-page messages-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">📨 Nachrichten</h1>
+    <p class="inventory-description">
+      Interne Mitteilungen verwalten, lesen und neue Gespräche starten.
+    </p>
+    <p class="inventory-info">
+      <?= $tab === 'inbox'
+        ? sprintf('%d ungelesen · %d insgesamt im Posteingang', $unreadCount, $totalMessages)
+        : sprintf('%d gesendete Nachrichten', $totalMessages)
+      ?>
+    </p>
+  </header>
 
-  <div class="tabs">
-    <a href="?tab=inbox" class="<?= $tab === 'inbox' ? 'active' : '' ?>">📥 Posteingang</a>
-    <a href="?tab=sent" class="<?= $tab === 'sent' ? 'active' : '' ?>">📤 Gesendet</a>
-    <a href="message_new.php" class="btn-small">➕ Neue Nachricht</a>
-  </div>
+  <section class="inventory-section">
+    <div class="inventory-tabs">
+      <div class="inventory-tabs__group">
+        <a href="?tab=inbox" class="inventory-tab <?= $tab === 'inbox' ? 'is-active' : '' ?>">📥 Posteingang</a>
+        <a href="?tab=sent" class="inventory-tab <?= $tab === 'sent' ? 'is-active' : '' ?>">📤 Gesendet</a>
+      </div>
+      <a href="message_new.php" class="inventory-submit inventory-submit--small message-new-btn">➕ Neue Nachricht</a>
+    </div>
 
-  <div class="table-wrapper">
-  <?php if ($messages): ?>
-    <table>
-      <tr>
-        <th><?= $tab === 'sent' ? 'Empfänger' : 'Absender' ?></th>
-        <th>Betreff</th>
-        <th>Datum</th>
-        <th style="width:100px;">Aktionen</th>
-      </tr>
-      <?php foreach ($messages as $m): ?>
-      <tr id="msg-row-<?= (int)$m['id'] ?>" class="<?= !$m['is_read'] && $tab === 'inbox' ? 'unread' : '' ?>">
-        <td>
-          <?php if ($tab === 'sent'): ?>
-            <?php $icon = $rang_icons[$m['receiver_rang']] ?? 'default.png'; ?>
-            <img src="../pics/icons/<?= htmlspecialchars($icon) ?>" class="avatar-icon" alt="">
-            <?= htmlspecialchars($m['receiver_name']) ?>
-            <span class="rang-badge"><?= htmlspecialchars($m['receiver_rang']) ?></span>
-          <?php else: ?>
-            <?php $icon = $rang_icons[$m['sender_rang']] ?? 'default.png'; ?>
-            <img src="../pics/icons/<?= htmlspecialchars($icon) ?>" class="avatar-icon" alt="">
-            <?= htmlspecialchars($m['sender_name']) ?>
-            <span class="rang-badge"><?= htmlspecialchars($m['sender_rang']) ?></span>
-          <?php endif; ?>
-        </td>
-        <td><a href="message_view.php?id=<?= (int)$m['id'] ?>" class="btn-small"><?= htmlspecialchars($m['subject'] ?: '(Kein Betreff)') ?></a></td>
-        <td><?= date('d.m.Y H:i', strtotime($m['sent_at'])) ?></td>
-        <td class="actions">
-          <form method="POST" action="" class="delete-form">
-            <input type="hidden" name="delete_id" value="<?= (int)$m['id'] ?>">
-            <button type="submit" class="delete-btn">🗑️</button>
-          </form>
-        </td>
-      </tr>
-      <?php endforeach; ?>
-    </table>
-  <?php else: ?>
-    <p>Keine Nachrichten vorhanden.</p>
-  <?php endif; ?>
-  </div>
+    <?php if ($messages): ?>
+      <div class="table-wrap">
+        <table class="data-table message-table">
+          <thead>
+            <tr>
+              <th><?= $tab === 'sent' ? 'Empfänger' : 'Absender' ?></th>
+              <th>Betreff</th>
+              <th>Datum</th>
+              <th class="message-actions__header">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php foreach ($messages as $m): ?>
+            <?php
+              $rowClasses = ['message-row'];
+              if ($tab === 'inbox' && empty($m['is_read'])) {
+                $rowClasses[] = 'message-row--unread';
+              }
+              $icon = $tab === 'sent'
+                ? ($rang_icons[$m['receiver_rang']] ?? 'default.png')
+                : ($rang_icons[$m['sender_rang']] ?? 'default.png');
+              $displayName = $tab === 'sent' ? $m['receiver_name'] : $m['sender_name'];
+              $displayRank = $tab === 'sent' ? $m['receiver_rang'] : $m['sender_rang'];
+            ?>
+            <tr id="msg-row-<?= (int)$m['id'] ?>" class="<?= implode(' ', $rowClasses) ?>">
+              <td>
+                <div class="message-participant">
+                  <img src="../pics/icons/<?= htmlspecialchars($icon) ?>" class="message-avatar" alt="">
+                  <div class="message-participant__info">
+                    <span class="message-participant__name"><?= htmlspecialchars($displayName) ?></span>
+                    <span class="rang-badge"><?= htmlspecialchars($displayRank) ?></span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <a href="message_view.php?id=<?= (int)$m['id'] ?>" class="message-subject">
+                  <?= htmlspecialchars($m['subject'] ?: '(Kein Betreff)') ?>
+                </a>
+              </td>
+              <td>
+                <span class="message-date"><?= date('d.m.Y H:i', strtotime($m['sent_at'])) ?></span>
+              </td>
+              <td class="message-actions">
+                <form method="POST" action="" class="delete-form">
+                  <input type="hidden" name="delete_id" value="<?= (int)$m['id'] ?>">
+                  <button type="submit" class="delete-btn" aria-label="Nachricht löschen">🗑️</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php else: ?>
+      <p class="empty-state">Keine Nachrichten vorhanden.</p>
+    <?php endif; ?>
+  </section>
 </main>
-
 
 <script>
 document.querySelectorAll('.delete-form').forEach(form => {
