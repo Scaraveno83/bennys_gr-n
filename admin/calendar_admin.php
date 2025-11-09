@@ -6,6 +6,15 @@ ini_set('display_startup_errors', 1);
 require_once __DIR__ . '/../includes/admin_access.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/visibility.php';
+
+$calendarAreas = [
+  'orders'     => 'Auftragsverwaltung',
+  'inventory'  => 'Lager / Teile',
+  'billing'    => 'Rechnungen',
+  'rp_docs'    => 'RP-Dokumente',
+  'blueprints' => 'Blueprints',
+  'arcade'     => 'Arcade',
+];
 ?>
 
 <!doctype html>
@@ -18,301 +27,812 @@ require_once __DIR__ . '/../includes/visibility.php';
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../calendar/calendar.css">
 <style>
-.page-wrap{max-width:1100px;margin:120px auto 60px;padding:0 20px;}
-.grid{display:grid; gap:18px; grid-template-columns:1fr 1fr;}
-@media (max-width:900px){ .grid{grid-template-columns:1fr;} }
-.small{font-size:.9rem; opacity:.8;}
-label.chk{display:flex; gap:10px; align-items:center; margin:6px 0;}
-.area-pill{display:inline-block;margin:6px 6px 0 0; padding:6px 10px;border-radius:999px;background:#121212;border:1px solid rgba(57,255,20,.35);}
-table{width:100%;border-collapse:collapse;margin-top:10px;}
-th,td{padding:8px;border-bottom:1px solid rgba(57,255,20,0.25);}
-th{color:#a8ffba;text-align:left;}
-tr:hover{background:rgba(57,255,20,0.05);}
-.msg {margin-top:8px; font-weight:bold;}
-.msg.ok{color:#8fff8f;}
-.msg.err{color:#76ff65;}
+.calendar-admin-page {
+  padding: 140px 20px 80px;
+  display: grid;
+  gap: 28px;
+}
+
+.calendar-admin-page .inventory-header {
+  gap: 18px;
+}
+
+.calendar-admin-page .inventory-metrics {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.calendar-admin-page .inventory-section {
+  gap: 24px;
+}
+
+.calendar-admin-form--inline {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .calendar-admin-form--inline {
+    grid-template-columns: minmax(220px, 1.8fr) 140px 120px auto;
+    align-items: end;
+  }
+}
+
+.calendar-admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calendar-admin-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.2px;
+}
+
+.calendar-admin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(57, 255, 20, 0.25);
+  background: rgba(57, 255, 20, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.08);
+  width: fit-content;
+}
+
+.calendar-admin-toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.calendar-admin-reasons-table tbody tr td {
+  vertical-align: middle;
+}
+
+.calendar-admin-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calendar-admin-id {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.3px;
+}
+
+.calendar-admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(57, 255, 20, 0.24);
+  background: rgba(57, 255, 20, 0.08);
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.calendar-admin-pill__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.calendar-admin-pill__icon {
+  font-size: 1.2rem;
+}
+
+.calendar-admin-pill--compact {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.calendar-admin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.calendar-admin-status::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.calendar-admin-status--active {
+  color: rgba(118, 255, 101, 0.9);
+}
+
+.calendar-admin-status--active::before {
+  background: rgba(118, 255, 101, 0.9);
+  box-shadow: 0 0 12px rgba(118, 255, 101, 0.35);
+}
+
+.calendar-admin-status--inactive {
+  color: rgba(255, 160, 170, 0.9);
+}
+
+.calendar-admin-status--inactive::before {
+  background: rgba(255, 160, 170, 0.9);
+  box-shadow: 0 0 12px rgba(255, 160, 170, 0.35);
+}
+
+.calendar-admin-color {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(57, 255, 20, 0.26);
+  box-shadow: 0 0 14px rgba(57, 255, 20, 0.22);
+}
+
+.calendar-admin-actions-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.calendar-admin-actions-heading {
+  text-align: right;
+}
+
+.calendar-admin-reasons-table .calendar-admin-empty,
+.calendar-admin-table .calendar-admin-empty {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 20px 0;
+}
+
+.calendar-admin-areas {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .calendar-admin-areas {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+.calendar-admin-check {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(57, 255, 20, 0.18);
+  background: rgba(12, 16, 18, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.calendar-admin-check:hover,
+.calendar-admin-check:focus-within {
+  transform: translateY(-1px);
+  border-color: rgba(118, 255, 101, 0.4);
+  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.18);
+}
+
+.calendar-admin-check input {
+  margin-top: 4px;
+  accent-color: #39ff14;
+}
+
+.calendar-admin-check span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-admin-check strong {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.calendar-admin-check small {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.3px;
+}
+
+.calendar-admin-pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.calendar-admin-empty {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.calendar-admin-page .inventory-note {
+  margin: 0;
+}
+
+.calendar-admin-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.calendar-admin-page__page-btn {
+  border: 1px solid rgba(57, 255, 20, 0.22);
+  border-radius: 999px;
+  background: rgba(57, 255, 20, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.calendar-admin-page__page-btn:hover,
+.calendar-admin-page__page-btn:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(118, 255, 101, 0.45);
+  background: linear-gradient(120deg, rgba(57, 255, 20, 0.22), rgba(118, 255, 101, 0.22));
+  box-shadow: 0 16px 30px rgba(57, 255, 20, 0.2);
+}
+
+.calendar-admin-page__page-btn.is-active {
+  background: linear-gradient(120deg, rgba(57, 255, 20, 0.35), rgba(118, 255, 101, 0.32));
+  color: #051105;
+  border-color: rgba(118, 255, 101, 0.55);
+  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.28);
+}
+
+.calendar-admin-page .inventory-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-admin-page .inventory-filters__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  flex: 1;
+}
+
+.calendar-admin-page .inventory-filters__group > * {
+  flex: none;
+}
+
+.calendar-admin-page .inventory-filters__group .search-field {
+  flex: 1;
+}
+
+.calendar-admin-page .inventory-filters__group .search-field input[type="search"] {
+  width: 100%;
+}
+
+.calendar-admin-page .inventory-form input,
+.calendar-admin-page .inventory-form select,
+.calendar-admin-page .inventory-form textarea {
+  width: 100%;
+}
+
+.calendar-admin-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.calendar-admin-metric-hint {
+  display: block;
+}
 </style>
 </head>
 <body>
 <?php include __DIR__ . '/../header.php'; ?>
 
-<main class="page-wrap">
-  <section class="cal-hero">
-    <h1>🔧 Admin – Kalenderverwaltung</h1>
-    <p>Hier verwaltest du Gründe, Sperrbereiche und kannst Status vorzeitig ändern.</p>
+<main class="inventory-page calendar-admin-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">🔧 Admin – Kalenderverwaltung</h1>
+    <p class="inventory-description">
+      Gründe, Sperrbereiche und Abwesenheiten zentral im Blick behalten – passend zu den Lageransichten.
+    </p>
+    <div class="inventory-metrics calendar-admin-metrics">
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Aktive Gründe</span>
+        <span class="inventory-metric__value" id="metricReasons">0</span>
+        <span class="inventory-metric__hint" id="metricReasonsHint">Kalendergründe verfügbar</span>
+      </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Gesperrte Bereiche</span>
+        <span class="inventory-metric__value" id="metricAreas">0</span>
+        <span class="inventory-metric__hint" id="metricAreasHint">Bereiche aktuell blockiert</span>
+      </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Abwesenheiten</span>
+        <span class="inventory-metric__value" id="metricAbsences">0</span>
+        <span class="inventory-metric__hint" id="metricAbsencesHint">Einträge insgesamt</span>
+      </article>
+    </div>
+  </header>
+
+  <section class="inventory-section" id="panel-reasons">
+    <div class="inventory-section__intro">
+      <h2>📚 Gründe verwalten</h2>
+      <p>Neue Gründe anlegen, deaktivieren oder wieder aktivieren – ganz wie bei den Lagerkarten.</p>
+    </div>
+
+    <label class="calendar-admin-toggle">
+      <input type="checkbox" id="showAllReasons"> <span>Auch deaktivierte Gründe anzeigen</span>
+    </label>
+
+    <form id="reasonForm" class="inventory-form calendar-admin-form--inline">
+      <div class="calendar-admin-field">
+        <label for="rLabel" class="calendar-admin-label">Grund</label>
+        <input type="text" id="rLabel" placeholder="z. B. Urlaub" required>
+      </div>
+      <div class="calendar-admin-field">
+        <label for="rColor" class="calendar-admin-label">Farbe</label>
+        <input type="color" id="rColor" value="#39ff14" title="Farbe">
+      </div>
+      <div class="calendar-admin-field">
+        <label for="rIcon" class="calendar-admin-label">Icon</label>
+        <input type="text" id="rIcon" value="🌴" maxlength="4" title="Icon">
+      </div>
+      <div class="calendar-admin-actions">
+        <button class="inventory-submit" type="submit">➕ Hinzufügen</button>
+      </div>
+    </form>
+
+    <p id="reasonMsg" class="inventory-alert" hidden></p>
+
+    <div class="table-wrap">
+      <table class="data-table calendar-admin-reasons-table">
+        <thead>
+          <tr>
+            <th>Grund</th>
+            <th>Darstellung</th>
+            <th>Status</th>
+            <th class="calendar-admin-actions-heading">Aktion</th>
+          </tr>
+        </thead>
+        <tbody id="reasonsBody"></tbody>
+      </table>
+    </div>
+
+    <p class="calendar-admin-metric-hint">Deaktivieren blendet Gründe in der Auswahl aus, ohne bestehende Einträge zu löschen.</p>
   </section>
 
-  <section class="grid">
-
-    <!-- 📚 GRÜNDE -->
-    <div class="cal-card" id="panel-reasons">
-      <h2>📚 Gründe verwalten</h2>
-      <label class="chk small" style="margin-top:6px;">
-       <input type="checkbox" id="showAllReasons"> Auch deaktivierte Gründe anzeigen
-      </label>
-      <form id="reasonForm" style="display:grid; gap:10px; grid-template-columns:1fr 120px 100px auto;">
-        <input type="text" id="rLabel" placeholder="Grund (z. B. Urlaub)" required>
-        <input type="color" id="rColor" value="#39ff14" title="Farbe">
-        <input type="text" id="rIcon" value="🌴" maxlength="4" title="Icon">
-        <button class="btn-primary" type="submit">Hinzufügen</button>
-      </form>
-      <div id="reasonMsg" class="msg"></div>
-      <div id="reasonsList" class="list" style="margin-top:10px;"></div>
-      <div class="small">Deaktivieren entfernt Grund aus Auswahl, löscht aber keine Historie.</div>
-    </div>
-
-    <!-- 🚫 GESPERRTE BEREICHE -->
-    <div class="cal-card" id="panel-areas">
+  <section class="inventory-section" id="panel-areas">
+    <div class="inventory-section__intro">
       <h2>🚫 Gesperrte Bereiche bei „Abwesend“</h2>
-      <div class="small">Diese Bereiche werden für Mitarbeiter mit Status „Abwesend“ blockiert.</div>
-      <form id="areasForm" style="margin-top:10px;">
-        <?php
-        $areas = [
-          'orders'      => 'Auftragsverwaltung',
-          'inventory'   => 'Lager / Teile',
-          'billing'     => 'Rechnungen',
-          'rp_docs'     => 'RP-Dokumente',
-          'blueprints'  => 'Blueprints',
-          'arcade'      => 'Arcade',
-        ];
-        foreach ($areas as $key => $label) {
-          echo "<label class='chk'><input type='checkbox' name='areas' value='{$key}'> {$label} ({$key})</label>";
-        }
-        ?>
-        <div style="margin-top:10px;">
-          <button class="btn-primary" type="submit">Speichern</button>
-        </div>
-      </form>
-      <div id="areasNow" style="margin-top:12px;"></div>
+      <p>Welche Bereiche sollen gesperrt werden, wenn ein Mitarbeiter als abwesend markiert ist?</p>
     </div>
 
-    <!-- 🛠️ STATUS ÄNDERN -->
-    <div class="cal-card" id="panel-override">
+    <form id="areasForm" class="inventory-form calendar-admin-areas-form">
+      <div class="calendar-admin-areas">
+        <?php foreach ($calendarAreas as $key => $label): ?>
+          <label class="calendar-admin-check">
+            <input type="checkbox" name="areas" value="<?= htmlspecialchars($key) ?>">
+            <span>
+              <strong><?= htmlspecialchars($label) ?></strong>
+              <small><?= htmlspecialchars($key) ?></small>
+            </span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+      <div class="calendar-admin-actions">
+        <button class="inventory-submit inventory-submit--small" type="submit">💾 Speichern</button>
+      </div>
+    </form>
+
+    <div id="areasNow" class="calendar-admin-pill-group"></div>
+  </section>
+
+  <section class="inventory-section" id="panel-override">
+    <div class="inventory-section__intro">
       <h2>🛠️ Status vorzeitig ändern</h2>
-      <form id="overrideForm" style="display:grid;gap:10px;">
-        <label>Mitarbeiter:</label>
+      <p>Setze den Status einzelner Mitarbeiter direkt – analog zu schnellen Lagerbuchungen.</p>
+    </div>
+
+    <form id="overrideForm" class="inventory-form">
+      <div class="calendar-admin-field">
+        <label for="ovUser" class="calendar-admin-label">Mitarbeiter</label>
         <select id="ovUser" required>
           <option value="">– Mitarbeiter auswählen –</option>
         </select>
+      </div>
 
-        <label>Status:</label>
+      <div class="calendar-admin-field">
+        <label for="ovStatus" class="calendar-admin-label">Status</label>
         <select id="ovStatus">
           <option value="Aktiv">Aktiv</option>
           <option value="Abwesend">Abwesend</option>
         </select>
+      </div>
 
-        <label>Bis (optional, bei „Abwesend“)</label>
+      <div class="calendar-admin-field">
+        <label for="ovUntil" class="calendar-admin-label">Bis (optional)</label>
         <input type="datetime-local" id="ovUntil">
-        <button class="btn-primary" type="submit">Übernehmen</button>
-      </form>
-      <div id="ovMsg" class="msg"></div>
+      </div>
+
+      <div class="calendar-admin-actions">
+        <button class="inventory-submit" type="submit">✅ Übernehmen</button>
+      </div>
+    </form>
+
+    <p id="ovMsg" class="inventory-alert" hidden></p>
+  </section>
+
+  <section class="inventory-section" id="panel-overview">
+    <div class="inventory-section__intro">
+      <h2>📊 Übersicht aller Abwesenheiten</h2>
+      <p>Filtere und analysiere alle Einträge – visuell passend zu den Lagerübersichten.</p>
     </div>
 
-    <!-- 📊 ÜBERSICHT -->
-<div class="cal-card" id="panel-overview">
-  <h2>📊 Übersicht aller Abwesenheiten</h2>
-  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-    <input type="text" id="searchAbs" placeholder="🔍 Suchen..." style="flex:1;padding:6px 10px;border-radius:8px;border:1px solid rgba(57,255,20,.4);background:#121212;color:#fff;">
-    <select id="filterUser" style="padding:6px 10px;border-radius:8px;background:#121212;color:#fff;border:1px solid rgba(57,255,20,.4);">
-      <option value="">👥 Alle Mitarbeiter</option>
-    </select>
-  </div>
-  <div style="overflow-x:auto;max-height:400px;overflow-y:auto;border-radius:8px;">
-    <table id="absTable" style="width:100%;border-collapse:collapse;">
-      <thead style="position:sticky;top:0;background:#1a1a1a;">
-        <tr>
-          <th>Mitarbeiter</th>
-          <th>Von</th>
-          <th>Bis</th>
-          <th>Gründe</th>
-          <th>Notiz</th>
-          <th>Erstellt</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div id="pagination" style="display:flex;justify-content:center;align-items:center;margin-top:10px;gap:6px;"></div>
-</div>
+    <div class="inventory-filters">
+      <div class="inventory-filters__group">
+        <span class="search-field">
+          <input type="search" id="searchAbs" placeholder="🔍 Suchen...">
+        </span>
+        <select id="filterUser" class="inventory-select">
+          <option value="">👥 Alle Mitarbeiter</option>
+        </select>
+      </div>
+    </div>
 
+    <div class="table-wrap">
+      <table id="absTable" class="data-table calendar-admin-table">
+        <thead>
+          <tr>
+            <th>Mitarbeiter</th>
+            <th>Von</th>
+            <th>Bis</th>
+            <th>Gründe</th>
+            <th>Notiz</th>
+            <th>Erstellt</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="pagination" class="calendar-admin-pagination"></div>
   </section>
 </main>
 
 <script>
 const API = '../includes/calendar_api.php';
+const AREA_LABELS = <?= json_encode($calendarAreas, JSON_UNESCAPED_UNICODE) ?>;
 
-async function api(action, data=null){
-  const opt = data ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action, ...data})}
-                   : {method:'GET'};
+async function api(action, data = null) {
+  const opt = data
+    ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...data }) }
+    : { method: 'GET' };
   const url = data ? API : API + '?action=' + encodeURIComponent(action);
   const res = await fetch(url, opt);
   return await res.json();
 }
 
-// === Gründe laden ===
-async function loadReasons(){
-  const box = document.getElementById('reasonsList');
+async function loadReasons() {
+  const body = document.getElementById('reasonsBody');
   const showAll = document.getElementById('showAllReasons')?.checked;
-  const r = await fetch(API + '?action=reasons' + (showAll ? '&all=1' : ''));
-  const data = await r.json();
-  box.innerHTML = '';
-  if (data.ok){
-    data.reasons.forEach(x=>{
-      const inactive = x.active == 0;
-      const row = document.createElement('div');
-      row.className = 'list-item';
-      row.innerHTML = `
-        <div>
-          <div><span class="area-pill" style="opacity:${inactive?0.4:1}; border-color:${x.color};">${x.icon||''} ${x.label}</span></div>
-          <div class="small">#${x.id} ${inactive ? '(inaktiv)' : ''}</div>
-        </div>
-        <div>
-          ${
-            inactive
-              ? `<button data-id="${x.id}" class="btn-restore" style="background:#1a1a1a;border:1px solid #55ff55;color:#9bff9b;border-radius:10px;padding:8px 12px;cursor:pointer;">Aktivieren</button>`
-              : `<button data-id="${x.id}" class="btn-del" style="background:#151515;border:1px solid rgba(57,255,20,.45);color:#a8ffba;border-radius:10px;padding:8px 12px;cursor:pointer;">Deaktivieren</button>`
-          }
-        </div>`;
-      box.appendChild(row);
-    });
+  const response = await fetch(API + '?action=reasons' + (showAll ? '&all=1' : ''));
+  const data = await response.json();
 
-    // deaktivieren
-    box.querySelectorAll('.btn-del').forEach(b=>{
-      b.addEventListener('click', async ()=>{
-        const id = parseInt(b.dataset.id,10);
+  body.innerHTML = '';
+
+  if (data.ok) {
+    let activeCount = 0;
+
+    if (!data.reasons.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 4;
+      cell.className = 'calendar-admin-empty';
+      cell.textContent = 'Keine Gründe vorhanden.';
+      row.appendChild(cell);
+      body.appendChild(row);
+    } else {
+      data.reasons.forEach(reason => {
+        const inactive = Number(reason.active) === 0;
+        if (!inactive) {
+          activeCount += 1;
+        }
+
+        const tr = document.createElement('tr');
+
+        const reasonCell = document.createElement('td');
+        const reasonWrap = document.createElement('div');
+        reasonWrap.className = 'calendar-admin-reason';
+
+        const pill = document.createElement('span');
+        pill.className = 'calendar-admin-pill';
+
+        const swatch = document.createElement('span');
+        swatch.className = 'calendar-admin-pill__swatch';
+        swatch.style.background = reason.color || '#39ff14';
+        pill.appendChild(swatch);
+
+        if (reason.icon) {
+          const icon = document.createElement('span');
+          icon.className = 'calendar-admin-pill__icon';
+          icon.textContent = reason.icon;
+          pill.appendChild(icon);
+        }
+
+        const label = document.createElement('span');
+        label.textContent = reason.label;
+        pill.appendChild(label);
+
+        reasonWrap.appendChild(pill);
+
+        const id = document.createElement('span');
+        id.className = 'calendar-admin-id';
+        id.textContent = '#' + reason.id + (inactive ? ' · Inaktiv' : '');
+        reasonWrap.appendChild(id);
+
+        reasonCell.appendChild(reasonWrap);
+        tr.appendChild(reasonCell);
+
+        const colorCell = document.createElement('td');
+        const colorSwatch = document.createElement('span');
+        colorSwatch.className = 'calendar-admin-color';
+        colorSwatch.style.background = reason.color || '#39ff14';
+        colorCell.appendChild(colorSwatch);
+        tr.appendChild(colorCell);
+
+        const statusCell = document.createElement('td');
+        const status = document.createElement('span');
+        status.className = 'calendar-admin-status ' + (inactive ? 'calendar-admin-status--inactive' : 'calendar-admin-status--active');
+        status.textContent = inactive ? 'Inaktiv' : 'Aktiv';
+        statusCell.appendChild(status);
+        tr.appendChild(statusCell);
+
+        const actionCell = document.createElement('td');
+        actionCell.className = 'calendar-admin-actions';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.id = reason.id;
+
+        if (inactive) {
+          btn.className = 'inventory-submit inventory-submit--small';
+          btn.textContent = 'Aktivieren';
+          btn.dataset.action = 'restore';
+        } else {
+          btn.className = 'inventory-submit inventory-submit--small inventory-submit--ghost inventory-submit--danger';
+          btn.textContent = 'Deaktivieren';
+          btn.dataset.action = 'deactivate';
+        }
+
+        actionCell.appendChild(btn);
+        tr.appendChild(actionCell);
+        body.appendChild(tr);
+      });
+    }
+
+    if (data.reasons.length && !showAll) {
+      activeCount = data.reasons.length;
+    }
+
+    document.getElementById('metricReasons').textContent = String(activeCount);
+    document.getElementById('metricReasonsHint').textContent = data.reasons.length
+      ? 'Gesamt: ' + data.reasons.length + (showAll ? ' (inkl. inaktive)' : ' aktive Gründe')
+      : 'Keine Gründe angelegt';
+
+    body.querySelectorAll('button[data-action="deactivate"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.dataset.id, 10);
         if (!confirm('Diesen Grund deaktivieren?')) return;
-        const r = await api('delete_reason', {id});
-        if (r.ok) loadReasons();
+        const result = await api('delete_reason', { id });
+        if (result.ok) loadReasons();
       });
     });
 
-    // reaktivieren
-    box.querySelectorAll('.btn-restore').forEach(b=>{
-      b.addEventListener('click', async ()=>{
-        const id = parseInt(b.dataset.id,10);
-        const r = await api('restore_reason', {id});
-        if (r.ok) loadReasons();
+    body.querySelectorAll('button[data-action="restore"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = parseInt(btn.dataset.id, 10);
+        const result = await api('restore_reason', { id });
+        if (result.ok) loadReasons();
       });
     });
+  } else {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 4;
+    cell.className = 'calendar-admin-empty';
+    cell.textContent = 'Fehler beim Laden der Gründe.';
+    row.appendChild(cell);
+    body.appendChild(row);
   }
 }
 
 document.getElementById('showAllReasons')?.addEventListener('change', loadReasons);
 
-// === Grund hinzufügen ===
-document.getElementById('reasonForm').addEventListener('submit', async (e)=>{
+document.getElementById('reasonForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const label = document.getElementById('rLabel').value.trim();
   const color = document.getElementById('rColor').value;
-  const icon  = document.getElementById('rIcon').value.trim();
+  const icon = document.getElementById('rIcon').value.trim();
   const msg = document.getElementById('reasonMsg');
 
-  const r = await api('add_reason', {label,color,icon});
-  if (r.ok){
-    msg.textContent = '✅ Grund erfolgreich hinzugefügt!';
-    msg.className = 'msg ok';
+  msg.hidden = true;
+
+  const result = await api('add_reason', { label, color, icon });
+  if (result.ok) {
+    msg.textContent = 'Grund erfolgreich hinzugefügt!';
+    msg.className = 'inventory-alert inventory-alert--success';
+    msg.hidden = false;
     e.target.reset();
+    document.getElementById('rColor').value = '#39ff14';
     loadReasons();
   } else {
-    msg.textContent = '❌ Fehler: ' + (r.error || 'Unbekannter Fehler');
-    msg.className = 'msg err';
+    msg.textContent = 'Fehler: ' + (result.error || 'Unbekannter Fehler');
+    msg.className = 'inventory-alert inventory-alert--error';
+    msg.hidden = false;
   }
 });
 
-// === Bereiche laden ===
-async function loadAreas(){
-  const r = await api('settings');
+async function loadAreas() {
+  const response = await api('settings');
   const now = document.getElementById('areasNow');
   now.innerHTML = '';
-  if (r.ok){
-    const list = r.restricted_areas || [];
-    document.querySelectorAll('#areasForm input[name="areas"]').forEach(cb=>{
+
+  if (response.ok) {
+    const list = response.restricted_areas || [];
+    document.querySelectorAll('#areasForm input[name="areas"]').forEach(cb => {
       cb.checked = list.includes(cb.value);
     });
-    now.innerHTML = list.length
-      ? 'Aktuell gesperrt: ' + list.map(a=>`<span class="area-pill">${a}</span>`).join(' ')
-      : '<span class="small">Derzeit kein Bereich gesperrt.</span>';
+
+    document.getElementById('metricAreas').textContent = String(list.length);
+    document.getElementById('metricAreasHint').textContent = list.length ? 'Bereiche aktuell blockiert' : 'Keine Sperren aktiv';
+
+    if (!list.length) {
+      const empty = document.createElement('span');
+      empty.className = 'calendar-admin-empty';
+      empty.textContent = 'Derzeit kein Bereich gesperrt.';
+      now.appendChild(empty);
+    } else {
+      list.forEach(key => {
+        const pill = document.createElement('span');
+        pill.className = 'calendar-admin-pill calendar-admin-pill--compact';
+        const icon = document.createElement('span');
+        icon.className = 'calendar-admin-pill__icon';
+        icon.textContent = '🚫';
+        const label = document.createElement('span');
+        label.textContent = AREA_LABELS[key] || key;
+        pill.appendChild(icon);
+        pill.appendChild(label);
+        now.appendChild(pill);
+      });
+    }
   }
 }
 
-// === Mitarbeiterliste laden ===
-async function loadUsers(){
+async function loadUsers() {
   const res = await fetch(API + '?action=users');
   const data = await res.json();
-  const sel = document.getElementById('ovUser');
-  sel.innerHTML = '<option value="">– Mitarbeiter auswählen –</option>';
-  if (data.ok && data.users.length){
-    data.users.forEach(u=>{
+  const select = document.getElementById('ovUser');
+  select.innerHTML = '<option value="">– Mitarbeiter auswählen –</option>';
+  if (data.ok && data.users.length) {
+    data.users.forEach(user => {
       const opt = document.createElement('option');
-      opt.value = u.id;
-      opt.textContent = u.name + (u.rang ? ' (' + u.rang + ')' : '');
-      sel.appendChild(opt);
+      opt.value = user.id;
+      opt.textContent = user.name + (user.rang ? ' (' + user.rang + ')' : '');
+      select.appendChild(opt);
     });
   }
 }
 
-// === Übersicht laden ===
 let absencesData = [];
 let currentPage = 1;
 const perPage = 10;
 
-async function loadOverview(){
+async function loadOverview() {
   const res = await fetch(API + '?action=all_absences');
   const data = await res.json();
-  if (data.ok){
+  if (data.ok) {
     absencesData = data.items;
+    document.getElementById('metricAbsences').textContent = String(absencesData.length);
+    document.getElementById('metricAbsencesHint').textContent = absencesData.length ? 'Einträge insgesamt' : 'Keine Abwesenheiten erfasst';
     fillUserFilter(absencesData);
     renderOverview();
   }
 }
 
-// Filteroptionen befüllen
-function fillUserFilter(items){
+function fillUserFilter(items) {
   const select = document.getElementById('filterUser');
-  const uniqueUsers = [...new Set(items.map(i => i.name))];
+  const uniqueUsers = [...new Set(items.map(item => item.name))].sort((a, b) => a.localeCompare(b, 'de'));
   select.innerHTML = '<option value="">👥 Alle Mitarbeiter</option>';
-  uniqueUsers.forEach(u=>{
+  uniqueUsers.forEach(name => {
     const opt = document.createElement('option');
-    opt.value = u;
-    opt.textContent = u;
+    opt.value = name;
+    opt.textContent = name;
     select.appendChild(opt);
   });
 }
 
-function renderOverview(){
+function renderOverview() {
   const body = document.querySelector('#absTable tbody');
   const search = document.getElementById('searchAbs').value.toLowerCase();
   const userFilter = document.getElementById('filterUser').value;
 
-  let filtered = absencesData.filter(x=>{
-    const reasons = Array.isArray(x.reasons_json) ? x.reasons_json :
-                    (x.reasons_json ? JSON.parse(x.reasons_json) : []);
-    const text = `${x.name} ${reasons.join(', ')} ${x.note || ''}`.toLowerCase();
-    return (!search || text.includes(search)) &&
-           (!userFilter || x.name === userFilter);
+  let filtered = absencesData.filter(item => {
+    const reasons = Array.isArray(item.reasons_json) ? item.reasons_json : (item.reasons_json ? JSON.parse(item.reasons_json) : []);
+    const text = `${item.name} ${reasons.join(', ')} ${item.note || ''}`.toLowerCase();
+    return (!search || text.includes(search)) && (!userFilter || item.name === userFilter);
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filtered.length / perPage);
-  currentPage = Math.min(currentPage, totalPages || 1);
+  const totalPages = Math.ceil(filtered.length / perPage) || 1;
+  currentPage = Math.min(currentPage, totalPages);
   const start = (currentPage - 1) * perPage;
   const pageItems = filtered.slice(start, start + perPage);
 
   body.innerHTML = '';
-  if (pageItems.length === 0){
-    body.innerHTML = '<tr><td colspan="6" class="small">Keine Einträge gefunden.</td></tr>';
+
+  if (!pageItems.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.className = 'calendar-admin-empty';
+    cell.textContent = 'Keine Einträge gefunden.';
+    row.appendChild(cell);
+    body.appendChild(row);
   } else {
-    pageItems.forEach(x=>{
-      const reasons = Array.isArray(x.reasons_json) ? x.reasons_json :
-                      (x.reasons_json ? JSON.parse(x.reasons_json) : []);
+    pageItems.forEach(item => {
+      const reasons = Array.isArray(item.reasons_json) ? item.reasons_json : (item.reasons_json ? JSON.parse(item.reasons_json) : []);
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${x.name}</td>
-        <td>${new Date(x.start_date).toLocaleString('de-DE')}</td>
-        <td>${new Date(x.end_date).toLocaleString('de-DE')}</td>
-        <td>${reasons.join(', ') || '-'}</td>
-        <td>${x.note || '-'}</td>
-        <td>${new Date(x.created_at).toLocaleString('de-DE')}</td>`;
+
+      const nameCell = document.createElement('td');
+      nameCell.textContent = item.name;
+      tr.appendChild(nameCell);
+
+      const fromCell = document.createElement('td');
+      fromCell.textContent = new Date(item.start_date).toLocaleString('de-DE');
+      tr.appendChild(fromCell);
+
+      const toCell = document.createElement('td');
+      toCell.textContent = new Date(item.end_date).toLocaleString('de-DE');
+      tr.appendChild(toCell);
+
+      const reasonsCell = document.createElement('td');
+      if (reasons.length) {
+        const group = document.createElement('div');
+        group.className = 'calendar-admin-pill-group';
+        reasons.forEach(reason => {
+          const pill = document.createElement('span');
+          pill.className = 'calendar-admin-pill calendar-admin-pill--compact';
+          pill.textContent = reason;
+          group.appendChild(pill);
+        });
+        reasonsCell.appendChild(group);
+      } else {
+        const empty = document.createElement('span');
+        empty.className = 'calendar-admin-empty';
+        empty.textContent = '–';
+        reasonsCell.appendChild(empty);
+      }
+      tr.appendChild(reasonsCell);
+
+      const noteCell = document.createElement('td');
+      noteCell.textContent = item.note || '–';
+      tr.appendChild(noteCell);
+
+      const createdCell = document.createElement('td');
+      createdCell.textContent = new Date(item.created_at).toLocaleString('de-DE');
+      tr.appendChild(createdCell);
+
       body.appendChild(tr);
     });
   }
@@ -320,48 +840,65 @@ function renderOverview(){
   renderPagination(totalPages);
 }
 
-// Pagination UI
-function renderPagination(totalPages){
+function renderPagination(totalPages) {
   const container = document.getElementById('pagination');
   container.innerHTML = '';
   if (totalPages <= 1) return;
-  for(let i=1;i<=totalPages;i++){
+
+  for (let i = 1; i <= totalPages; i += 1) {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.textContent = i;
-    btn.style.cssText = `
-      background:${i===currentPage?'#39ff14':'#1a1a1a'};
-      color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer;
-    `;
-    btn.onclick = ()=>{ currentPage=i; renderOverview(); };
+    btn.className = 'calendar-admin-page__page-btn' + (i === currentPage ? ' is-active' : '');
+    btn.addEventListener('click', () => {
+      currentPage = i;
+      renderOverview();
+    });
     container.appendChild(btn);
   }
 }
 
-// Event-Listener
-document.getElementById('searchAbs').addEventListener('input', ()=>{ currentPage=1; renderOverview(); });
-document.getElementById('filterUser').addEventListener('change', ()=>{ currentPage=1; renderOverview(); });
-
-
-// === Formularevents ===
-document.getElementById('areasForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const areas = Array.from(document.querySelectorAll('#areasForm input[name="areas"]:checked')).map(x=>x.value);
-  const r = await api('save_settings', {restricted_areas: areas});
-  if (r.ok) loadAreas();
+document.getElementById('searchAbs').addEventListener('input', () => {
+  currentPage = 1;
+  renderOverview();
 });
 
-document.getElementById('overrideForm').addEventListener('submit', async (e)=>{
+document.getElementById('filterUser').addEventListener('change', () => {
+  currentPage = 1;
+  renderOverview();
+});
+
+document.getElementById('areasForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const user_id = parseInt(document.getElementById('ovUser').value,10);
-  const status  = document.getElementById('ovStatus').value;
-  const until   = document.getElementById('ovUntil').value || null;
+  const areas = Array.from(document.querySelectorAll('#areasForm input[name="areas"]:checked')).map(cb => cb.value);
+  const result = await api('save_settings', { restricted_areas: areas });
+  if (result.ok) {
+    loadAreas();
+  }
+});
+
+document.getElementById('overrideForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const user_id = parseInt(document.getElementById('ovUser').value, 10);
+  const status = document.getElementById('ovStatus').value;
+  const until = document.getElementById('ovUntil').value || null;
   const msg = document.getElementById('ovMsg');
-  const r = await api('set_status', {user_id, status, until});
-  if (r.ok){ msg.textContent = 'Status aktualisiert.'; msg.className='msg ok'; }
-  else { msg.textContent = 'Fehler: ' + (r.error||''); msg.className='msg err'; }
+
+  msg.hidden = true;
+
+  const result = await api('set_status', { user_id, status, until });
+  if (result.ok) {
+    msg.textContent = 'Status aktualisiert.';
+    msg.className = 'inventory-alert inventory-alert--success';
+    msg.hidden = false;
+    loadOverview();
+  } else {
+    msg.textContent = 'Fehler: ' + (result.error || '');
+    msg.className = 'inventory-alert inventory-alert--error';
+    msg.hidden = false;
+  }
 });
 
-// === Initiale Ladevorgänge ===
 loadReasons();
 loadAreas();
 loadUsers();
@@ -372,7 +909,6 @@ loadOverview();
   <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
   <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
 </footer>
-
 
 <script src="../script.js"></script>
 </body>
