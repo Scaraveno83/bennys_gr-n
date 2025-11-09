@@ -26,16 +26,16 @@ require_once __DIR__ . '/../includes/visibility.php';
     <p class="inventory-info">Nutze die Tabs, um alle Bereiche strukturiert zu pflegen.</p>
   </header>
 
-  <div class="pricing-admin-tabs pricing-center-tabs" role="tablist">
-    <button type="button" class="pricing-tab is-active" data-tab="tab-base">1) Allgemeine Preise</button>
-    <button type="button" class="pricing-tab" data-tab="tab-partners">2) Vertragspartner</button>
-    <button type="button" class="pricing-tab" data-tab="tab-cars">3) Fahrzeuge</button>
-    <button type="button" class="pricing-tab" data-tab="tab-tuning">4) Tuning je Fahrzeug</button>
-    <button type="button" class="pricing-tab" data-tab="tab-pprices">5) Partner-Preise</button>
-  </div>
+   <div class="pricing-admin-tabs pricing-center-tabs" role="tablist">␊
+    <a href="#tab-base" class="pricing-tab is-active" data-tab="tab-base" role="tab" aria-controls="tab-base" aria-selected="true" id="tab-base-trigger">1) Allgemeine Preise</a>
+    <a href="#tab-partners" class="pricing-tab" data-tab="tab-partners" role="tab" aria-controls="tab-partners" aria-selected="false" id="tab-partners-trigger">2) Vertragspartner</a>
+    <a href="#tab-cars" class="pricing-tab" data-tab="tab-cars" role="tab" aria-controls="tab-cars" aria-selected="false" id="tab-cars-trigger">3) Fahrzeuge</a>
+    <a href="#tab-tuning" class="pricing-tab" data-tab="tab-tuning" role="tab" aria-controls="tab-tuning" aria-selected="false" id="tab-tuning-trigger">4) Tuning je Fahrzeug</a>
+    <a href="#tab-pprices" class="pricing-tab" data-tab="tab-pprices" role="tab" aria-controls="tab-pprices" aria-selected="false" id="tab-pprices-trigger">5) Partner-Preise</a>
+  </div>␊
 
   <!-- 1) BASE PRICES -->
-  <section class="inventory-section pricing-admin-panel is-active" id="tab-base" role="tabpanel">
+  <section class="inventory-section pricing-admin-panel is-active" id="tab-base" role="tabpanel" aria-labelledby="tab-base-trigger">
     <h2>⚙️ Allgemeine Preise (Basis)</h2>
     <form id="baseForm" class="inventory-form pricing-admin-grid">
       <div class="input-control">
@@ -74,7 +74,7 @@ require_once __DIR__ . '/../includes/visibility.php';
   </section>
 
   <!-- 2) PARTNERS -->
-  <section class="inventory-section pricing-admin-panel" id="tab-partners" role="tabpanel" hidden>
+  <section class="inventory-section pricing-admin-panel is-active" id="tab-base" role="tabpanel" aria-labelledby="tab-base-trigger">
     <h2>🏢 Vertragspartner</h2>
     <form id="partnerCreate" class="inventory-form pricing-admin-grid">
       <div class="input-control">
@@ -97,7 +97,7 @@ require_once __DIR__ . '/../includes/visibility.php';
   </section>
 
   <!-- 3) CARS -->
-  <section class="inventory-section pricing-admin-panel" id="tab-cars" role="tabpanel" hidden>
+  <section class="inventory-section pricing-admin-panel" id="tab-cars" role="tabpanel" hidden aria-labelledby="tab-cars-trigger">
     <h2>🚗 Fahrzeuge verwalten</h2>
     <div class="pricing-admin-grid">
       <div class="input-control">
@@ -122,7 +122,7 @@ require_once __DIR__ . '/../includes/visibility.php';
   </section>
 
   <!-- 4) TUNING -->
-  <section class="inventory-section pricing-admin-panel" id="tab-tuning" role="tabpanel" hidden>
+  <section class="inventory-section pricing-admin-panel" id="tab-tuning" role="tabpanel" hidden aria-labelledby="tab-tuning-trigger">
     <h2>🛠️ Tuning (Key/Value)</h2>
     <div class="pricing-admin-grid">
       <div class="input-control">
@@ -151,7 +151,7 @@ require_once __DIR__ . '/../includes/visibility.php';
   </section>
 
   <!-- 5) PARTNER PRICES -->
-  <section class="inventory-section pricing-admin-panel" id="tab-pprices" role="tabpanel" hidden>
+  <section class="inventory-section pricing-admin-panel" id="tab-pprices" role="tabpanel" hidden aria-labelledby="tab-pprices-trigger">
     <h2>💰 Partner-Preise (Overrides)</h2>
     <div class="pricing-admin-grid">
       <div class="input-control">
@@ -222,12 +222,15 @@ require_once __DIR__ . '/../includes/visibility.php';
 const API = '../includes/partner_api.php';
 
 function setPanelVisibility(panel, visible) {
+  if (!panel) return;
   if (visible) {
     panel.classList.add('is-active');
     panel.removeAttribute('hidden');
+    panel.setAttribute('aria-hidden', 'false');
   } else {
     panel.classList.remove('is-active');
     panel.setAttribute('hidden', '');
+    panel.setAttribute('aria-hidden', 'true');
   }
 }
 
@@ -239,19 +242,63 @@ function safeGet(source, key, fallback) {
 }
 
 // Tabs
-const adminTabs = document.querySelectorAll('.pricing-admin-tabs .pricing-tab');
-const adminPanels = document.querySelectorAll('.pricing-admin-panel');
+const adminTabs = Array.from(document.querySelectorAll('.pricing-admin-tabs .pricing-tab'));
+const adminPanels = Array.from(document.querySelectorAll('.pricing-admin-panel'));
+
+function activateAdminTab(targetId, { updateHash = true } = {}) {
+  if (!adminTabs.length || !adminPanels.length) return;
+  let targetPanel = adminPanels.find((panel) => panel.id === targetId);
+  if (!targetPanel) {
+    targetPanel = adminPanels[0];
+    targetId = targetPanel ? targetPanel.id : null;
+  }
+  if (!targetPanel) return;
+
+  adminTabs.forEach((tab) => {
+    const isActive = tab.dataset.tab === targetId;
+    tab.classList.toggle('is-active', isActive);
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    tab.setAttribute('tabindex', isActive ? '0' : '-1');
+  });
+
+  adminPanels.forEach((panel) => {
+    setPanelVisibility(panel, panel === targetPanel);
+    if (panel === targetPanel) {
+      panel.removeAttribute('tabindex');
+    } else {
+      panel.setAttribute('tabindex', '-1');
+    }
+  });
+
+  if (updateHash && targetId && typeof history.replaceState === 'function') {
+    const newHash = `#${targetId}`;
+    if (window.location.hash !== newHash) {
+      history.replaceState(null, '', newHash);
+    }
+  }
+}
 
 adminTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    const targetId = tab.dataset.tab;
-    adminTabs.forEach((btn) => btn.classList.toggle('is-active', btn === tab));
-    adminPanels.forEach((panel) => {
-      const isMatch = panel.id === targetId;
-      setPanelVisibility(panel, isMatch);
-    });
+  tab.addEventListener('click', (event) => {
+    event.preventDefault();
+    activateAdminTab(tab.dataset.tab);
+    tab.focus();
   });
 });
+
+window.addEventListener('hashchange', () => {
+  const hashId = window.location.hash ? window.location.hash.substring(1) : '';
+  if (!hashId) return;
+  activateAdminTab(hashId, { updateHash: false });
+});
+
+const initialHash = window.location.hash ? window.location.hash.substring(1) : '';
+if (initialHash) {
+  activateAdminTab(initialHash, { updateHash: false });
+} else if (adminTabs.length) {
+  const defaultTab = adminTabs.find((tab) => tab.classList.contains('is-active')) || adminTabs[0];
+  activateAdminTab(defaultTab.dataset.tab, { updateHash: false });
+}
 
 // 1) Base prices
 async function loadBase(){
@@ -297,20 +344,20 @@ async function renderPartners(){
   const tb = document.createElement('tbody');
   (j.items||[]).forEach(p=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `␊
+    tr.innerHTML = `
       <td>${p.logo_url?`<img src="${p.logo_url}" class="pricing-admin-logo" alt="Logo ${p.name||''}">`:'—'}
           <form class="logoForm pricing-admin-logo-form" data-id="${p.id}" enctype="multipart/form-data">
-            <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" required>␊
+            <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp" required>
             <button class="btn-primary pricing-admin-inline-btn" type="submit">Upload</button>
-          </form>␊
-      </td>␊
+          </form>
+      </td>
       <td><input type="text" value="${p.name||''}" class="in-name pricing-admin-inline-input"></td>
       <td><input type="number" step="0.1" value="${p.tuning_modifier_percent||0}" class="in-mod pricing-admin-inline-input"></td>
       <td><input type="text" value="${p.remarks||''}" class="in-rem pricing-admin-inline-input"></td>
-      <td>␊
+      <td>
         <button class="btn-primary btn-save pricing-admin-inline-btn">Speichern</button>
         <button class="btn-ghost btn-del pricing-admin-inline-btn">Löschen</button>
-      </td>`;␊
+      </td>`;
     tb.appendChild(tr);
 
     tr.querySelector('.logoForm').addEventListener('submit', async (e)=>{
