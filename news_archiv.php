@@ -106,45 +106,84 @@ if (!$isAjax):
 
     <?php if ($alleNews): ?>
       <div class="news-archive-list">
-        <?php foreach ($alleNews as $n): if ($n['sichtbar_fuer']==='intern' && !$isLoggedIn) continue; ?>
+       <?php foreach ($alleNews as $n):
+          $visibility = $n['sichtbar_fuer'] ?? 'oeffentlich';
+          if ($visibility === 'intern' && !$isLoggedIn) continue;
+
+          $icon = trim($n['icon'] ?? '') ?: '📰';
+          $createdAt = new DateTime($n['erstellt_am']);
+          $createdAtFormatted = $createdAt->format('d.m.Y H:i');
+          $createdAtIso = $createdAt->format(DateTime::ATOM);
+          $isInternNews = $visibility === 'intern';
+
+          $rStmt=$pdo->prepare("SELECT reaction_type,count FROM news_reactions WHERE news_id=?");
+          $rStmt->execute([$n['id']]);
+          $reactions=$rStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+          $cStmt=$pdo->prepare("SELECT id,user_id,name,text,created_at FROM news_comments WHERE news_id=? ORDER BY created_at ASC");
+          $cStmt->execute([$n['id']]);
+          $countComments=$cStmt->rowCount();
+        ?>
         <article class="news-card news-archive-card" id="news-<?= (int)$n['id'] ?>">
-          <header class="news-entry-header">
-            <div class="news-entry-title">
-              <span class="news-entry-icon"><?= htmlspecialchars($n['icon'] ?: '📰') ?></span>
-              <h3 class="news-entry-heading"><?= htmlspecialchars($n['titel']) ?></h3>
+          <header class="news-card__header">
+            <div class="news-card__identity">
+              <span class="news-card__icon" aria-hidden="true"><?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?></span>
+              <div class="news-card__titles">
+                <h3 class="news-card__title"><?= htmlspecialchars($n['titel']) ?></h3>
+                <div class="news-card__meta">
+                  <span class="news-card__meta-item">
+                    📅 <time datetime="<?= $createdAtIso ?>"><?= $createdAtFormatted ?></time>
+                  </span>
+                  <span class="news-card__meta-divider" aria-hidden="true"></span>
+                  <span class="news-card__meta-item" title="Kommentare">💬 <?= $countComments ?></span>
+                  <span class="news-card__meta-divider" aria-hidden="true"></span>
+                  <span class="news-card__badge <?= $isInternNews ? 'news-card__badge--intern' : 'news-card__badge--public' ?>">
+                    <?= $isInternNews ? '🔒 Intern' : '🌍 Öffentlich' ?>
+                  </span>
+                </div>
+              </div>
             </div>
-            <?php if (($n['sichtbar_fuer'] ?? 'oeffentlich') === 'intern'): ?>
-              <span class="news-entry-badge">🔒 Intern</span>
-            <?php endif; ?>
           </header>
-          <div class="news-entry-meta">
-            <span class="news-date">📅 <?= date('d.m.Y H:i', strtotime($n['erstellt_am'])) ?></span>
-          </div>
-          <div class="news-text"><?= $n['text'] ?></div>
 
-          <?php
-            $rStmt=$pdo->prepare("SELECT reaction_type,count FROM news_reactions WHERE news_id=?");
-            $rStmt->execute([$n['id']]);
-            $reactions=$rStmt->fetchAll(PDO::FETCH_KEY_PAIR);
-          ?>
-          <div class="news-entry-reactions">
-            <form method="POST" action="add_reaction.php" class="news-entry-reactions__form">
+          <div class="news-card__body">
+            <div class="news-text"><?= $n['text'] ?></div>
+          </div>
+
+          <footer class="news-card__footer news-card__footer--archive">
+            <form method="POST" action="add_reaction.php" class="news-card__reactions">
               <input type="hidden" name="news_id" value="<?= (int)$n['id'] ?>">
-              <button name="reaction" value="like"  class="reaction-btn">👍 <?= (int)($reactions['like']??0) ?></button>
-              <button name="reaction" value="love"  class="reaction-btn">❤️ <?= (int)($reactions['love']??0) ?></button>
-              <button name="reaction" value="fire"  class="reaction-btn">🔥 <?= (int)($reactions['fire']??0) ?></button>
-              <button name="reaction" value="angry" class="reaction-btn">😡 <?= (int)($reactions['angry']??0) ?></button>
+              <button name="reaction" value="like"  class="reaction-btn">
+                <span class="reaction-emoji" aria-hidden="true">👍</span>
+                <span class="reaction-count"><?= (int)($reactions['like']??0) ?></span>
+              </button>
+              <button name="reaction" value="love"  class="reaction-btn">
+                <span class="reaction-emoji" aria-hidden="true">❤️</span>
+                <span class="reaction-count"><?= (int)($reactions['love']??0) ?></span>
+              </button>
+              <button name="reaction" value="fire"  class="reaction-btn">
+                <span class="reaction-emoji" aria-hidden="true">🔥</span>
+                <span class="reaction-count"><?= (int)($reactions['fire']??0) ?></span>
+              </button>
+              <button name="reaction" value="angry" class="reaction-btn">
+                <span class="reaction-emoji" aria-hidden="true">😡</span>
+                <span class="reaction-count"><?= (int)($reactions['angry']??0) ?></span>
+              </button>
             </form>
-          </div>
 
-          <?php
-            $cStmt=$pdo->prepare("SELECT id,user_id,name,text,created_at FROM news_comments WHERE news_id=? ORDER BY created_at ASC");
-            $cStmt->execute([$n['id']]);
-            $countComments=$cStmt->rowCount();
-          ?>
-          <button type="button" class="toggle-comments-btn" onclick="toggleComments(this)">💬 Kommentare anzeigen (<?= $countComments ?>)</button>
+            <button
+              type="button"
+              class="toggle-comments-btn"
+              data-open-text="💬 Kommentare anzeigen (<?= $countComments ?>)"
+              data-close-text="🙈 Kommentare ausblenden"
+              aria-expanded="false"
+              aria-controls="archive-comments-<?= (int)$n['id'] ?>"
+              onclick="toggleComments(this)"
+            >
+              💬 Kommentare anzeigen (<?= $countComments ?>)
+            </button>
+          </footer>
 
-          <div class="comments">
+          <div class="comments" id="archive-comments-<?= (int)$n['id'] ?>" hidden>
             <h4>Kommentare</h4>
             <?php if ($countComments>0): while($c=$cStmt->fetch(PDO::FETCH_ASSOC)): ?>
               <div class="comment">
@@ -202,13 +241,27 @@ if (!$isAjax):
 
 <script>
 function toggleComments(button){
-  const comments=button.nextElementSibling;
+  const card=button.closest('.news-card');
+  if(!card)return;
+
+  const targetId=button.getAttribute('aria-controls');
+  const comments=targetId?card.querySelector(`#${targetId}`):card.querySelector('.comments');
   if(!comments)return;
-  const isVisible=comments.style.display==='block';
-  comments.style.display=isVisible?'none':'block';
-  button.textContent=isVisible
-    ?button.textContent.replace('ausblenden','anzeigen')
-    :button.textContent.replace('anzeigen','ausblenden');
+
+  const isHidden=comments.hasAttribute('hidden');
+  if(isHidden){
+    comments.removeAttribute('hidden');
+    comments.classList.add('is-visible');
+  }else{
+    comments.setAttribute('hidden','');
+    comments.classList.remove('is-visible');
+  }
+
+  const openText=button.dataset.openText||button.textContent;
+  const closeText=button.dataset.closeText||button.textContent;
+  const expanded=comments.hasAttribute('hidden')?'false':'true';
+  button.innerHTML=expanded==='true'?closeText:openText;
+  button.setAttribute('aria-expanded',expanded);
 }
 function toggleEditForm(button){
   const form=button.nextElementSibling;
@@ -220,9 +273,9 @@ function toggleEditForm(button){
 
 // --- Reaktionen per AJAX ---
 document.addEventListener('click',async e=>{
-  if(!e.target.matches('.reaction-btn'))return;
+  const btn=e.target.closest('.reaction-btn');
+  if(!btn)return;
   e.preventDefault();
-  const btn=e.target;
   const form=btn.closest('form');
   const newsId=form.querySelector('input[name="news_id"]').value;
   const reaction=btn.value;
@@ -236,7 +289,9 @@ document.addEventListener('click',async e=>{
     if(data.status==='success'){
       for(const [type,count]of Object.entries(data.reactions)){
         const targetBtn=form.querySelector(`button[value="${type}"]`);
-        if(targetBtn)targetBtn.innerHTML=targetBtn.innerHTML.replace(/\d+$/,count);
+        if(!targetBtn)continue;
+        const countEl=targetBtn.querySelector('.reaction-count');
+        if(countEl)countEl.textContent=count;
       }
     }
   }catch(err){console.error('Fehler bei Reaktion:',err);}
