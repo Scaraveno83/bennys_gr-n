@@ -2230,6 +2230,169 @@ main form textarea:focus {
   box-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
 }
 
+/* ===== Feedback Management ===== */
+.inventory-page.feedback-page {
+  gap: 32px;
+}
+
+.feedback-page .inventory-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.feedback-page .inventory-tabs__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.feedback-page .inventory-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  background: rgba(10, 14, 16, 0.75);
+  color: rgba(200, 255, 210, 0.85);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.18);
+}
+
+.feedback-page .inventory-tab:hover,
+.feedback-page .inventory-tab:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 24px rgba(57, 255, 20, 0.2);
+  background: linear-gradient(120deg, rgba(57, 255, 20, 0.28), rgba(118, 255, 101, 0.22));
+  color: #fff;
+}
+
+.feedback-page .inventory-tab.is-active {
+  background: linear-gradient(120deg, rgba(57, 255, 20, 0.9), rgba(118, 255, 101, 0.9));
+  color: #041104;
+  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
+}
+
+.feedback-page .inventory-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(4, 17, 4, 0.85);
+  border: 1px solid rgba(57, 255, 20, 0.35);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(200, 255, 210, 0.88);
+}
+
+.feedback-page .feedback-table td {
+  vertical-align: top;
+}
+
+.feedback-page .feedback-news {
+  display: grid;
+  gap: 4px;
+}
+
+.feedback-page .feedback-author {
+  font-weight: 600;
+  color: #fff;
+}
+
+.feedback-page .feedback-comment {
+  display: grid;
+  gap: 10px;
+}
+
+.feedback-page .feedback-comment__text {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.feedback-page .feedback-comment__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.feedback-page .feedback-edit-form {
+  display: none;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(57, 255, 20, 0.18);
+  background: rgba(8, 12, 14, 0.82);
+  padding: 16px;
+  gap: 12px;
+}
+
+.feedback-page .feedback-edit-form.is-visible {
+  display: grid;
+}
+
+.feedback-page .feedback-edit-form textarea {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(57, 255, 20, 0.28);
+  background: rgba(4, 8, 10, 0.9);
+  color: #fff;
+  padding: 10px 12px;
+  font: inherit;
+  resize: vertical;
+  min-height: 110px;
+}
+
+.feedback-page .feedback-edit-form textarea:focus {
+  outline: none;
+  border-color: rgba(118, 255, 101, 0.6);
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.35);
+}
+
+.feedback-page .feedback-inline-form {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.feedback-page .inventory-summary {
+  align-items: flex-start;
+}
+
+.feedback-page .inventory-summary__label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.feedback-page .inventory-summary__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.feedback-page .inventory-summary__hint {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+@media (max-width: 720px) {
+  .feedback-page .inventory-tabs {
+    justify-content: center;
+  }
+
+  .feedback-page .feedback-inline-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .feedback-page .feedback-inline-form .inventory-submit {
+    width: 100%;
+  }
+}
+
 .messages-page .message-table thead th:nth-last-child(1),
 .messages-page .message-actions__header {
   text-align: right;
@@ -2672,6 +2835,7 @@ gap: 12px;
   letter-spacing: 0.4px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 16px 28px rgba(57, 255, 20, 0.32);
+  text-decoration: none;
 }
 
 .inventory-submit:hover,
