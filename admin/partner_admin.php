@@ -11,7 +11,7 @@ require_once __DIR__ . '/../includes/visibility.php';
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin – Vertragspartner & Preise</title>
-<link rel="stylesheet" href="../styles.css">␊
+<link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../calendar/calendar.css">
 </head>
@@ -26,13 +26,13 @@ require_once __DIR__ . '/../includes/visibility.php';
     <p class="inventory-info">Nutze die Tabs, um alle Bereiche strukturiert zu pflegen.</p>
   </header>
 
-   <div class="pricing-admin-tabs pricing-center-tabs" role="tablist">␊
+   <div class="pricing-admin-tabs pricing-center-tabs" role="tablist">
     <a href="#tab-base" class="pricing-tab is-active" data-tab="tab-base" role="tab" aria-controls="tab-base" aria-selected="true" id="tab-base-trigger">1) Allgemeine Preise</a>
     <a href="#tab-partners" class="pricing-tab" data-tab="tab-partners" role="tab" aria-controls="tab-partners" aria-selected="false" id="tab-partners-trigger">2) Vertragspartner</a>
     <a href="#tab-cars" class="pricing-tab" data-tab="tab-cars" role="tab" aria-controls="tab-cars" aria-selected="false" id="tab-cars-trigger">3) Fahrzeuge</a>
     <a href="#tab-tuning" class="pricing-tab" data-tab="tab-tuning" role="tab" aria-controls="tab-tuning" aria-selected="false" id="tab-tuning-trigger">4) Tuning je Fahrzeug</a>
     <a href="#tab-pprices" class="pricing-tab" data-tab="tab-pprices" role="tab" aria-controls="tab-pprices" aria-selected="false" id="tab-pprices-trigger">5) Partner-Preise</a>
-  </div>␊
+  </div>
 
   <!-- 1) BASE PRICES -->
   <section class="inventory-section pricing-admin-panel is-active" id="tab-base" role="tabpanel" aria-labelledby="tab-base-trigger">
@@ -74,7 +74,7 @@ require_once __DIR__ . '/../includes/visibility.php';
   </section>
 
   <!-- 2) PARTNERS -->
-  <section class="inventory-section pricing-admin-panel is-active" id="tab-base" role="tabpanel" aria-labelledby="tab-base-trigger">
+  <section class="inventory-section pricing-admin-panel" id="tab-partners" role="tabpanel" hidden aria-labelledby="tab-partners-trigger">
     <h2>🏢 Vertragspartner</h2>
     <form id="partnerCreate" class="inventory-form pricing-admin-grid">
       <div class="input-control">
