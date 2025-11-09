@@ -142,6 +142,9 @@ foreach ($eintraege as $e) {
   if (isset($gesamt[$p])) $gesamt[$p] += $menge;
   $gesamt['Summe'] += $menge;
 }
+
+$anzahlEintraege = count($eintraege);
+$letzterEintrag = $eintraege[0]['datum'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -153,133 +156,113 @@ foreach ($eintraege as $e) {
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="header.css" />
 <link rel="stylesheet" href="styles.css" />
-
-<style>
-main {
-  padding: 120px 40px 80px;
-  max-width: 1000px;
-  margin: 0 auto;
-  text-align: center;
-}
-.card {
-  background: rgba(25,25,25,0.9);
-  border: 1px solid rgba(57,255,20,0.4);
-  border-radius: 15px;
-  padding: 25px;
-  margin-bottom: 40px;
-  color: #fff;
-  box-shadow: 0 0 15px rgba(57,255,20,0.25);
-}
-form input, form select {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(57,255,20,0.35);
-  background: rgba(20,20,20,0.85);
-  color: #fff;
-}
-form button {
-  background: linear-gradient(90deg,#39ff14,#76ff65);
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  color: #fff;
-  cursor: pointer;
-  transition: .3s;
-}
-form button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(57,255,20,0.6);
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-th, td {
-  border: 1px solid rgba(57,255,20,0.25);
-  padding: 10px;
-}
-th {
-  background: rgba(57,255,20,0.18);
-  color: #76ff65;
-}
-tfoot td {
-  background: rgba(57,255,20,0.15);
-  font-weight: bold;
-  color: #c8ffd5;
-}
-tr:hover {
-  background: rgba(57,255,20,0.08);
-}
-</style>
 </head>
 <body>
 <?php include 'header.php'; ?>
 
-<main>
-  <h2 class="section-title">📦 Meine Wochenaufgaben</h2>
-  <p>Hallo <strong><?= htmlspecialchars($nutzername) ?></strong>!  
-  Hier siehst du, was du diese Woche (<?= date('d.m.', strtotime($montag)) ?> – <?= date('d.m.Y', strtotime($sonntag)) ?>) gefarmt hast.</p>
+<main class="inventory-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">📦 Meine Wochenaufgaben</h1>
+    <p class="inventory-description">
+      Hallo <strong><?= htmlspecialchars($nutzername) ?></strong>!<br>
+      Hier siehst du deine gebuchten Ressourcen für die Kalenderwoche <?= date('W') ?>
+      (<?= date('d.m.', strtotime($montag)) ?> – <?= date('d.m.Y', strtotime($sonntag)) ?>).
+    </p>
+    <p class="inventory-info">
+      Einträge werden automatisch dem passenden Lager (Azubi oder Hauptlager) gutgeschrieben.
+    </p>
 
-  <!-- Formular: Neuer Eintrag -->
-  <div class="card">
-    <h3>➕ Neuer Eintrag</h3>
-    <form method="post">
+    <div class="inventory-metrics">
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Einträge diese Woche</span>
+        <span class="inventory-metric__value"><?= $anzahlEintraege ?></span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Gesamtmenge</span>
+        <span class="inventory-metric__value"><?= (int)$gesamt['Summe'] ?></span>
+        <span class="inventory-metric__hint">über alle Produkte</span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Letzte Buchung</span>
+        <span class="inventory-metric__value">
+          <?= $letzterEintrag ? date('d.m.Y', strtotime($letzterEintrag)) : '–' ?>
+        </span>
+        <span class="inventory-metric__hint">
+          <?= $letzterEintrag ? date('H:i \U\h\r', strtotime($letzterEintrag)) : 'keine Daten' ?>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <section class="inventory-section">
+    <h2>Neuen Eintrag erfassen</h2>
+    <p class="inventory-section__intro">
+      Bitte buche jede abgeschlossene Aufgabe mit Produktart und Menge.
+    </p>
+    <form method="post" class="inventory-form">
       <input type="hidden" name="add" value="1">
-      <label>Produkt:</label>
-      <select name="produkt" required>
-        <option value="">– bitte wählen –</option>
-        <?php foreach ($produkte as $p): ?>
-          <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-        <?php endforeach; ?>
-      </select>
-
-      <label>Menge:</label>
-      <input type="number" name="menge" min="1" placeholder="z. B. 50" required>
-
-      <button type="submit">Eintragen</button>
-    </form>
-  </div>
-
-  <!-- Statistik -->
-  <div class="card">
-    <h3>📊 Meine Wochenstatistik</h3>
-    <?php if ($eintraege): ?>
-      <table>
-        <thead>
-          <tr>
-            <th>Datum</th>
-            <th>Produkt</th>
-            <th>Menge</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($eintraege as $e): ?>
-            <tr>
-              <td><?= date('d.m.Y H:i', strtotime($e['datum'])) ?></td>
-              <td><?= htmlspecialchars($e['produkt']) ?></td>
-              <td><?= htmlspecialchars($e['menge']) ?></td>
-            </tr>
+      <div class="input-control">
+        <label for="produkt">Produkt</label>
+        <select id="produkt" name="produkt" required>
+          <option value="">– bitte wählen –</option>
+          <?php foreach ($produkte as $p): ?>
+            <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
           <?php endforeach; ?>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td><strong>Gesamt</strong></td>
-            <td>
-              <?php foreach ($produkte as $p): ?>
-                <?= htmlspecialchars($p) ?>: <?= (int)$gesamt[$p] ?><br>
-              <?php endforeach; ?>
-            </td>
-            <td><strong><?= (int)$gesamt['Summe'] ?></strong></td>
-          </tr>
-        </tfoot>
-      </table>
+        </select>
+      </div>
+
+      <div class="input-control">
+        <label for="menge">Menge</label>
+        <input id="menge" class="input-field" type="number" name="menge" min="1" placeholder="z. B. 50" required>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="inventory-submit">Eintrag speichern</button>
+        <span class="form-hint">Wird automatisch im richtigen Lager verbucht.</span>
+      </div>
+    </form>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Wochenstatistik</h2>
+    <?php if ($eintraege): ?>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Produkt</th>
+              <th>Menge</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($eintraege as $e): ?>
+              <tr>
+                <td><?= date('d.m.Y H:i', strtotime($e['datum'])) ?></td>
+                <td><?= htmlspecialchars($e['produkt']) ?></td>
+                <td><?= htmlspecialchars($e['menge']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="inventory-summary-grid">
+        <?php foreach ($produkte as $p): ?>
+          <div class="inventory-summary">
+            <span class="inventory-summary__label"><?= htmlspecialchars($p) ?></span>
+            <span class="inventory-summary__value"><?= (int)$gesamt[$p] ?></span>
+          </div>
+        <?php endforeach; ?>
+        <div class="inventory-summary inventory-summary--accent">
+          <span class="inventory-summary__label">Gesamtmenge</span>
+          <span class="inventory-summary__value"><?= (int)$gesamt['Summe'] ?></span>
+        </div>
+      </div>
     <?php else: ?>
-      <p>Du hast diese Woche noch keine Aufgaben eingetragen.</p>
+      <p class="inventory-empty">Du hast diese Woche noch keine Aufgaben eingetragen.</p>
     <?php endif; ?>
-  </div>
+  </section>
 </main>
 
 <footer id="main-footer">

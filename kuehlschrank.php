@@ -76,6 +76,16 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$nutzername, $montag]);
 $verlauf = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$gesamtProdukte = count($produkte);
+$kritischeProdukte = 0;
+foreach ($produkte as $produkt) {
+    if ((int)$produkt['bestand'] < 3) {
+        $kritischeProdukte++;
+    }
+}
+
+$entnahmenDieseWoche = count($verlauf);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -84,75 +94,124 @@ $verlauf = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <title>🧊 Kühlschranklager | Benny’s Werkstatt</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="header.css">
-<style>
-main { padding:120px 40px; max-width:1000px; margin:0 auto; color:#fff; text-align:center; }
-.card { background:rgba(25,25,25,0.9); border:1px solid rgba(57,255,20,0.4); border-radius:15px; padding:25px; margin-bottom:40px; box-shadow:0 0 18px rgba(57,255,20,0.25); }
-h2,h3{ color:#76ff65; text-shadow:0 0 10px rgba(57,255,20,0.5); }
-.low-stock{ color:#76ff65; font-weight:bold; text-shadow:0 0 10px rgba(57,255,20,0.55); }
-button { background:linear-gradient(90deg,#39ff14,#76ff65); border:none; padding:10px 20px; border-radius:8px; color:#fff; cursor:pointer; transition:.3s; box-shadow:0 0 16px rgba(57,255,20,0.35); }
-button:hover{ transform:scale(1.05); box-shadow:0 0 20px rgba(57,255,20,0.6); }
-</style>
 </head>
 <body>
 <?php include 'header.php'; ?>
 
-<main>
-  <h2>🧊 Kühlschranklager</h2>
-  <p>Hier kannst du Essen & Getränke entnehmen. Deine Kosten werden automatisch berechnet.</p>
+<main class="inventory-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">🧊 Kühlschranklager</h1>
+    <p class="inventory-description">
+      Snacks & Getränke für das Team – mit automatischer Kostenübersicht pro Woche.
+    </p>
+    <p class="inventory-info">Deine Entnahmen werden direkt im persönlichen Wochenkonto verbucht.</p>
 
-  <div class="card">
-    <h3>📦 Aktuelle Produkte</h3>
-    <table>
-      <thead><tr><th>Produkt</th><th>Kategorie</th><th>Preis (€)</th><th>Bestand</th><th>Aktion</th></tr></thead>
-      <tbody>
-        <?php foreach ($produkte as $p): ?>
-          <tr>
-            <td><?= htmlspecialchars($p['produkt']) ?></td>
-            <td><?= htmlspecialchars($p['kategorie']) ?></td>
-            <td><?= number_format($p['preis'], 2, ',', '.') ?></td>
-            <td class="<?= $p['bestand'] < 3 ? 'low-stock' : '' ?>"><?= $p['bestand'] ?></td>
-            <td>
-              <?php if ($p['bestand'] > 0): ?>
-                <form method="post" style="display:inline-block;">
-                  <input type="hidden" name="produkt_id" value="<?= $p['id'] ?>">
-                  <input type="number" name="menge" value="1" min="1" max="<?= $p['bestand'] ?>" style="width:60px;">
-                  <button type="submit">🥪 Entnehmen</button>
-                </form>
-              <?php else: ?>
-                <span style="color:#888;">leer</span>
-              <?php endif; ?>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
+    <div class="inventory-metrics">
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Produkte verfügbar</span>
+        <span class="inventory-metric__value"><?= $gesamtProdukte ?></span>
+      </div>
+      <div class="inventory-metric <?= $kritischeProdukte ? 'inventory-metric--alert' : '' ?>">
+        <span class="inventory-metric__label">Knapp (&lt; 30 Stück)</span>
+        <span class="inventory-metric__value"><?= $kritischeProdukte ?></span>
+        <span class="inventory-metric__hint">bitte nachfüllen</span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Entnahmen diese Woche</span>
+        <span class="inventory-metric__value"><?= $entnahmenDieseWoche ?></span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Kosten dieser Woche</span>
+        <span class="inventory-metric__value"><?= number_format($wochenkosten, 2, ',', '.') ?> €</span>
+        <span class="inventory-metric__hint">Montag – Sonntag</span>
+      </div>
+    </div>
+  </header>
 
-  <div class="card">
-    <h3>💰 Deine Wochenkosten</h3>
-    <p style="font-size:1.2rem;">Bisherige Kosten: <strong><?= number_format($wochenkosten, 2, ',', '.') ?> €</strong></p>
-  </div>
-
-  <div class="card">
-    <h3>🧾 Deine Entnahmen (aktuelle Woche)</h3>
-    <?php if ($verlauf): ?>
-      <table>
-        <thead><tr><th>Datum</th><th>Produkt</th><th>Menge</th><th>Gesamt (€)</th></tr></thead>
-        <tbody>
-          <?php foreach ($verlauf as $v): ?>
+  <section class="inventory-section">
+    <h2>Aktuelle Produkte</h2>
+    <p class="inventory-section__intro">Wähle Menge & Produkt – der Bestand aktualisiert sich automatisch.</p>
+    <?php if ($produkte): ?>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
             <tr>
-              <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
-              <td><?= htmlspecialchars($v['produkt']) ?></td>
-              <td><?= (int)$v['menge'] ?></td>
-              <td><?= number_format($v['gesamtpreis'], 2, ',', '.') ?></td>
+              <th>Produkt</th>
+              <th>Kategorie</th>
+              <th>Preis (€)</th>
+              <th>Bestand</th>
+              <th>Aktion</th>
             </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <?php foreach ($produkte as $p): ?>
+              <tr>
+                <td><?= htmlspecialchars($p['produkt']) ?></td>
+                <td><?= htmlspecialchars($p['kategorie']) ?></td>
+                <td><?= number_format($p['preis'], 2, ',', '.') ?></td>
+                <td class="<?= $p['bestand'] < 3 ? 'low-stock' : '' ?>"><?= $p['bestand'] ?></td>
+                <td>
+                  <?php if ($p['bestand'] > 0): ?>
+                    <form method="post" class="table-action-form">
+                      <input type="hidden" name="produkt_id" value="<?= $p['id'] ?>">
+                      <input type="number" name="menge" value="1" min="1" max="<?= $p['bestand'] ?>" class="input-field input-field--compact">
+                      <button type="submit" class="inventory-submit inventory-submit--small">🥪 Entnehmen</button>
+                    </form>
+                  <?php else: ?>
+                    <span class="table-note">leer</span>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
     <?php else: ?>
-      <p>Du hast diese Woche noch nichts entnommen.</p>
+      <p class="inventory-empty">Aktuell sind keine Produkte hinterlegt.</p>
     <?php endif; ?>
-  </div>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Deine Wochenkosten</h2>
+    <div class="inventory-summary-grid">
+      <div class="inventory-summary inventory-summary--accent">
+        <span class="inventory-summary__label">Kalenderwoche <?= date('W') ?></span>
+        <span class="inventory-summary__value"><?= number_format($wochenkosten, 2, ',', '.') ?> €</span>
+        <span class="inventory-summary__hint">Stand: <?= date('d.m.Y') ?></span>
+      </div>
+    </div>
+    <p class="inventory-note">Die Abrechnung erfolgt gesammelt über die Lohnbuchhaltung.</p>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Entnahmen (aktuelle Woche)</h2>
+    <?php if ($verlauf): ?>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Produkt</th>
+              <th>Menge</th>
+              <th>Gesamt (€)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($verlauf as $v): ?>
+              <tr>
+                <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
+                <td><?= htmlspecialchars($v['produkt']) ?></td>
+                <td><?= (int)$v['menge'] ?></td>
+                <td><?= number_format($v['gesamtpreis'], 2, ',', '.') ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php else: ?>
+      <p class="inventory-empty">Du hast diese Woche noch nichts entnommen.</p>
+    <?php endif; ?>
+  </section>
 </main>
 
 <footer id="main-footer">

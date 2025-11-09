@@ -9,6 +9,23 @@ require_once 'includes/db.php';
 // Alle Fahrzeuge laden
 $stmt = $pdo->query("SELECT * FROM fahrzeuge ORDER BY fahrzeug_typ ASC, id ASC");
 $fahrzeuge = $stmt->fetchAll();
+
+$gesamtFahrzeuge = count($fahrzeuge);
+$fahrzeugeMitFahrer = 0;
+$pruefungenFaellig = 0;
+
+foreach ($fahrzeuge as $fz) {
+    if (!empty(trim($fz['fahrer'] ?? ''))) {
+        $fahrzeugeMitFahrer++;
+    }
+
+    if (!empty($fz['pruefdatum'])) {
+        $diffTage = (strtotime($fz['pruefdatum']) - time()) / 86400;
+        if ($diffTage <= 30) {
+            $pruefungenFaellig++;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -26,13 +43,37 @@ $fahrzeuge = $stmt->fetchAll();
 <body>
 <?php include 'header.php'; ?>
 
-<main class="page-shell">
-  <header class="page-header">
-    <h1 class="page-title">🚗 Unsere Firmenfahrzeuge</h1>
-    <p class="page-subtitle">Status, Fahrer und Prüfungen aller Flottenfahrzeuge im direkten Überblick.</p>
+<main class="inventory-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">🚗 Unsere Firmenfahrzeuge</h1>
+    <p class="inventory-description">
+      Status, Fahrer und Prüftermine aller Flottenfahrzeuge im direkten Überblick.
+    </p>
+
+    <div class="inventory-metrics">
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Fahrzeuge gesamt</span>
+        <span class="inventory-metric__value"><?= $gesamtFahrzeuge ?></span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Zugewiesene Fahrer:innen</span>
+        <span class="inventory-metric__value"><?= $fahrzeugeMitFahrer ?></span>
+        <span class="inventory-metric__hint">aktive Einsatzbereitschaft</span>
+      </div>
+      <div class="inventory-metric <?= $pruefungenFaellig ? 'inventory-metric--alert' : '' ?>">
+        <span class="inventory-metric__label">Prüfungen &lt; 30 Tage</span>
+        <span class="inventory-metric__value"><?= $pruefungenFaellig ?></span>
+        <span class="inventory-metric__hint">rechtzeitig koordinieren</span>
+      </div>
+    </div>
   </header>
 
-  <section class="section-stack surface-panel">
+  <section class="inventory-section">
+    <h2>Flottenübersicht</h2>
+    <p class="inventory-section__intro">
+      Alle Informationen sind für schnelle Service- und TÜV-Abstimmungen optimiert.
+    </p>
+
     <?php if ($fahrzeuge): ?>
       <div class="vehicle-grid">
         <?php foreach ($fahrzeuge as $fz):
@@ -46,7 +87,7 @@ $fahrzeuge = $stmt->fetchAll();
             <h3><?= htmlspecialchars($fz['fahrzeug_typ']) ?></h3>
             <div class="vehicle-info">
               <p><strong>Kennzeichen:</strong> <?= htmlspecialchars($fz['kennzeichen']) ?></p>
-              <p><strong>Fahrer:</strong> <?= htmlspecialchars($fz['fahrer'] ?: '–') ?></p>
+              <p><strong>Fahrer:in:</strong> <?= htmlspecialchars($fz['fahrer'] ?: '–') ?></p>
               <p><strong>Tankstand:</strong> <?= htmlspecialchars($fz['tankstand'] ?: '–') ?></p>
               <p><strong>Beschädigungen:</strong><br><?= nl2br(htmlspecialchars($fz['beschaedigungen'] ?: 'Keine')) ?></p>
               <?php if ($fz['pruefdatum']): ?>
@@ -62,7 +103,7 @@ $fahrzeuge = $stmt->fetchAll();
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <p class="text-muted">Aktuell sind keine Fahrzeuge in der Datenbank eingetragen.</p>
+      <p class="inventory-empty">Aktuell sind keine Fahrzeuge in der Datenbank eingetragen.</p>
     <?php endif; ?>
   </section>
 </main>
