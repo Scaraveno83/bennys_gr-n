@@ -15,34 +15,6 @@ require_once __DIR__ . '/../includes/db.php';
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="calendar.css">
-<style>
-  .reason-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-.reason-list label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: #121212;
-  border: 1px solid rgba(57,255,20,.35);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.reason-list label:hover {
-  background: rgba(57,255,20,.1);
-}
-.reason-list input[type="checkbox"] {
-  accent-color: #39ff14;
-}
-
-/* Container-Breite */
-.page-wrap{max-width:1100px;margin:120px auto 60px;padding:0 20px;}
-</style>
 </head>
 <?php
 $basePath = "../";  // Muss VOR include stehen
@@ -52,42 +24,62 @@ include __DIR__ . '/../header.php';
 
 
 
-<main class="page-wrap">
-  <section class="cal-hero">
-    <h1>🗓️ Abwesenheiten</h1>
-    <p>Trage deine Abwesenheiten ein. Während „Abwesend“ sind bestimmte Bereiche gesperrt.</p>
-    <div id="statusBadge" class="status-badge">Lade Status…</div>
-  </section>
+<main class="calendar-app">
+  <section class="calendar-columns">
+    <div class="calendar-column calendar-column--narrow">
+      <article class="calendar-card calendar-card--status">
+        <header class="card-head">
+          <h1 class="card-title">🗓️ Abwesenheiten</h1>
+          <p class="card-subtitle">Behalte deinen Status im Blick und plane kompakt.</p>
+        </header>
+        <div class="status-widget">
+          <span class="status-label">Aktueller Status</span>
+          <div id="statusBadge" class="status-badge">Lade Status…</div>
+          <p class="status-hint">Während „Abwesend“ können sensible Bereiche gesperrt sein.</p>
+        </div>
+      </article>
 
-  <section class="cal-grid">
-    <div class="cal-card">
-      <h2>➕ Abwesenheit eintragen</h2>
-      <form id="absenceForm">
-        <div class="field">
-          <label>Von</label>
-          <input type="datetime-local" name="start_date" required>
-        </div>
-        <div class="field">
-          <label>Bis</label>
-          <input type="datetime-local" name="end_date" required>
-        </div>
-        <div class="field">
-          <label>Gründe:</label>
-          <div id="reasonCheckboxes" class="reason-list"></div>
-          <small>Mehrere Gründe einfach anklicken</small>
-        </div>
-        <div class="field">
-          <label>Notiz (optional)</label>
-          <input type="text" name="note" placeholder="Kurzinfo…">
-        </div>
-        <button class="btn-primary" type="submit">Speichern</button>
-      </form>
-      <div id="formMsg" class="msg"></div>
+      <article class="calendar-card calendar-card--form">
+        <header class="card-head">
+          <h2 class="card-title">➕ Neue Abwesenheit</h2>
+          <p class="card-subtitle">Start- und Endzeit eingeben, Gründe wählen, fertig.</p>
+        </header>
+        <form id="absenceForm" class="calendar-form">
+          <div class="form-grid">
+            <label class="form-field" for="absence-start">
+              <span class="form-label">Von</span>
+              <input id="absence-start" type="datetime-local" name="start_date" required>
+            </label>
+            <label class="form-field" for="absence-end">
+              <span class="form-label">Bis</span>
+              <input id="absence-end" type="datetime-local" name="end_date" required>
+            </label>
+          </div>
+          <div class="form-field">
+            <span class="form-label">Gründe</span>
+            <div id="reasonCheckboxes" class="reason-grid"></div>
+            <small>Mehrere Gründe lassen sich kombinieren.</small>
+          </div>
+          <label class="form-field" for="absence-note">
+            <span class="form-label">Notiz (optional)</span>
+            <input id="absence-note" type="text" name="note" placeholder="Kurzinfo…">
+          </label>
+          <div class="form-actions">
+            <button class="btn-primary" type="submit">Speichern</button>
+            <div id="formMsg" class="msg" aria-live="polite"></div>
+          </div>
+        </form>
+      </article>
     </div>
 
-    <div class="cal-card">
-      <h2>📋 Meine Abwesenheiten</h2>
-      <div id="myList" class="list"></div>
+    <div class="calendar-column calendar-column--wide">
+      <article class="calendar-card calendar-card--list">
+        <header class="card-head">
+          <h2 class="card-title">📋 Meine Abwesenheiten</h2>
+          <p class="card-subtitle">Sortiert nach Startdatum, aktuellste zuerst.</p>
+        </header>
+        <div id="myList" class="calendar-timeline"></div>
+      </article>
     </div>
   </section>
 </main>
@@ -120,7 +112,7 @@ async function loadStatus() {
 
 async function loadReasons() {
   const box = document.getElementById('reasonCheckboxes');
-  box.innerHTML = '<div style="opacity:.7;">Lade Gründe…</div>';
+  box.innerHTML = '<div class="loader">Lade Gründe…</div>';
   const r = await api('reasons');
   box.innerHTML = '';
   if (r.ok && r.reasons.length) {
@@ -133,7 +125,7 @@ async function loadReasons() {
       box.appendChild(label);
     });
   } else {
-    box.innerHTML = '<div style="color:#a8ffba;">⚠️ Keine Gründe gefunden.</div>';
+    box.innerHTML = '<div class="empty">⚠️ Keine Gründe gefunden.</div>';
   }
 }
 
