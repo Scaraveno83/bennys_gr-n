@@ -134,18 +134,20 @@
 
 .form-grid {
   display: grid;
-  gap: 12px;
+  gap: clamp(12px, 3vw, 18px);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 620px) {
   .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
 
 .form-field {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .form-label {
