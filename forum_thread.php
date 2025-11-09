@@ -6,7 +6,7 @@ $me = forum_get_user_summary($pdo, (int)$_SESSION['user_id']);
 
 $thread_id = (int)($_GET['id'] ?? 0);
 
-$stmt = $pdo->prepare("SELECT t.id, t.title, t.created_at, t.room_id, 
+$stmt = $pdo->prepare("SELECT t.id, t.title, t.created_at, t.room_id,
                               r.title AS room_title, r.icon AS room_icon
                        FROM forum_threads t
                        JOIN forum_rooms r ON r.id = t.room_id
@@ -63,6 +63,10 @@ $q = $pdo->prepare("SELECT p.id, p.author_id, p.content, p.created_at,
                     ORDER BY p.created_at ASC");
 $q->execute([$thread_id]);
 $posts = $q->fetchAll(PDO::FETCH_ASSOC);
+
+$postCount = count($posts);
+$replyCount = max($postCount - 1, 0);
+$lastPostAt = $postCount ? $posts[$postCount - 1]['created_at'] : null;
 ?>
 <?php
 // DEINE LISTE – unverändert lassen
@@ -88,126 +92,175 @@ $emoji_list = [
 <link rel="stylesheet" href="/header.css">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/forum.css">
-<style>
-/* Nur Dropdown-UI, Rest bleibt unberührt */
-.emoji-toggle{margin-top:6px;background:#262626;border:1px solid rgba(57,255,20,.35);padding:6px 10px;border-radius:8px;color:#fff;cursor:pointer}
-.emoji-picker{margin-top:8px;padding:8px;background:#1a1a1a;border:1px solid rgba(57,255,20,.35);border-radius:10px;max-height:160px;overflow-y:auto;display:none;flex-wrap:wrap;gap:6px}
-.emoji-btn{font-size:22px;cursor:pointer;padding:2px 4px}
-.emoji-btn:hover{background:rgba(57,255,20,.2);border-radius:6px}
-.edit-box { display:none; margin-top:10px; }
-.show { display:block!important; }
-.post-buttons { margin-top:8px; display:flex; gap:10px; }
-.post-content { margin:6px 0 10px 0; }
-</style>
 </head>
 <body>
 <?php include __DIR__ . '/header.php'; ?>
 
-<div class="forum-wrap">
-  <div class="forum-card">
-    <h2><?= $thread['room_icon'].' '.h($thread['title']) ?></h2>
-    <p class="forum-muted"><?= h($thread['room_title']) ?></p>
-  </div>
+<main class="inventory-page forum-page">
+  <header class="inventory-header forum-header">
+    <div>
+      <h1 class="inventory-title"><?= $thread['room_icon'] . ' ' . h($thread['title']) ?></h1>
+      <p class="inventory-description">Thema im Bereich „<?= h($thread['room_title']) ?>“</p>
+    </div>
+    <div class="inventory-metrics">
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Beiträge</span>
+        <span class="inventory-metric__value"><?= $postCount ?></span>
+        <span class="inventory-metric__hint">inkl. Startpost</span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Antworten</span>
+        <span class="inventory-metric__value"><?= $replyCount ?></span>
+        <span class="inventory-metric__hint">Teamreaktionen</span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Letzte Aktivität</span>
+        <span class="inventory-metric__value"><?= $lastPostAt ? date('d.m.Y', strtotime($lastPostAt)) : '—' ?></span>
+        <span class="inventory-metric__hint"><?= $lastPostAt ? date('H:i \U\h\r', strtotime($lastPostAt)) : 'Noch keine Antworten' ?></span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Gestartet</span>
+        <span class="inventory-metric__value"><?= date('d.m.Y', strtotime($thread['created_at'])) ?></span>
+        <span class="inventory-metric__hint"><?= date('H:i \U\h\r', strtotime($thread['created_at'])) ?></span>
+      </div>
+    </div>
+  </header>
 
-  <?php foreach($posts as $p):
-    $bild_url = $p['bild_url'] ?? '';
+  <section class="inventory-section forum-section">
+    <div>
+      <h2 class="forum-section__title">Beitragsverlauf</h2>
+      <p class="inventory-section__intro">Alle Nachrichten werden in zeitlicher Reihenfolge angezeigt.</p>
+    </div>
 
-if (!empty($bild_url)) {
-    // Wenn kein Slash vorne → ergänzen
-    if ($bild_url[0] !== '/') {
-        $bild_url = '/' . $bild_url;
-    }
+<div class="forum-post-list">
+      <?php foreach ($posts as $p):
+        $bild_url = $p['bild_url'] ?? '';
 
-    // Absoluten Pfad prüfen
-    $serverPath = $_SERVER['DOCUMENT_ROOT'] . $bild_url;
+    if (!empty($bild_url)) {
+          if ($bild_url[0] !== '/') {
+              $bild_url = '/' . $bild_url;
+          }
 
-    if (file_exists($serverPath)) {
-        $avatar = $bild_url;
-    } else {
-        $avatar = '/pics/default-avatar.png';
-    }
-} else {
-    $avatar = '/pics/default-avatar.png';
-}
+              $serverPath = $_SERVER['DOCUMENT_ROOT'] . $bild_url;
+
+if (file_exists($serverPath)) {
+              $avatar = $bild_url;
+          } else {
+              $avatar = '/pics/default-avatar.png';
+          }
+        } else {
+          $avatar = '/pics/default-avatar.png';
+        }
 
 $erlaubteRollen = [
-    'Geschäftsführung',
-    'Stv. Geschäftsleitung',
-    'Personalleitung',
-    'Administrator'
-];
+            'Geschäftsführung',
+            'Stv. Geschäftsleitung',
+            'Personalleitung',
+            'Administrator'
+        ];
 
-$canEdit = (
-    $p['author_id'] == $me['mid'] 
-    || !empty($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'
-    || in_array($me['rang'], $erlaubteRollen)
-);
+      $canEdit = (
+            $p['author_id'] == $me['mid']
+            || !empty($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'
+            || in_array($me['rang'], $erlaubteRollen)
+        );
+      ?>
+      <article class="forum-post">
+        <img class="forum-post__avatar" src="<?= h($avatar) ?>" alt="Avatar von <?= h($p['name'] ?? 'Unbekannt') ?>">
+        <div class="forum-post__body">
+          <header class="forum-post__header">
+            <div class="forum-post__title">
+              <span class="forum-post__author"><?= h($p['name'] ?? 'Unbekannt') ?></span>
+              <?php if ($p['rang']): ?><span class="badge"><?= h($p['rang']) ?></span><?php endif; ?>
+            </div>
+            <time class="forum-post__time" datetime="<?= date('c', strtotime($p['created_at'])) ?>">
+              <?= date('d.m.Y H:i \U\h\r', strtotime($p['created_at'])) ?>
+            </time>
+          </header>
 
-  ?>
-  <div class="post">
-    <img class="avatar" src="<?= h($avatar) ?>">
-    <div class="post-body">
-      <strong><?= h($p['name']) ?></strong>
-      <?php if ($p['rang']): ?><span class="badge"><?= h($p['rang']) ?></span><?php endif; ?>
-      <div class="forum-muted"><?= date('d.m.Y H:i', strtotime($p['created_at'])) ?></div>
+      <div class="forum-post__content" id="content_<?= $p['id'] ?>">
+            <?= nl2br(h($p['content'])) ?>
+          </div>
 
-      <div class="post-content" id="content_<?= $p['id'] ?>">
-        <?= nl2br(h($p['content'])) ?>
+        <?php if ($canEdit): ?>
+          <div class="forum-post__actions">
+            <button type="button" class="inventory-submit inventory-submit--ghost inventory-submit--small" onclick="toggleEdit(<?= $p['id'] ?>)">Bearbeiten</button>
+            <form method="post">
+              <input type="hidden" name="post_id" value="<?= $p['id'] ?>">
+              <button class="inventory-submit inventory-submit--danger inventory-submit--small" name="delete_post">Löschen</button>
+            </form>
+          </div>
+
+        <form method="post" class="forum-edit-form" id="edit_<?= $p['id'] ?>">
+            <input type="hidden" name="post_id" value="<?= $p['id'] ?>">
+            <div class="input-control">
+              <label class="sr-only" for="edit_content_<?= $p['id'] ?>">Beitrag bearbeiten</label>
+              <textarea id="edit_content_<?= $p['id'] ?>" name="content" rows="4" class="input-field"><?= h($p['content']) ?></textarea>
+            </div>
+            <div class="forum-emoji-toolbar">
+              <button type="button" class="forum-emoji-toggle" onclick="togglePicker(this)">😊 Emojis ▼</button>
+              <div class="forum-emoji-picker">
+                <?php foreach($emoji_list as $em): ?>
+                  <span class="forum-emoji" onclick="addEmojiTo('#edit_content_<?= $p['id'] ?>', '<?= $em ?>')"><?= $em ?></span>
+                <?php endforeach; ?>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="inventory-submit inventory-submit--small" name="save_edit">Speichern</button>
+            </div>
+          </form>
+          <?php endif; ?>
+        </div>
+      </article>
+      <?php endforeach; ?>
+    </div>
+  </section>
+
+  <section class="inventory-section forum-section forum-reply">
+    <div>
+      <h2 class="forum-section__title">Antwort verfassen</h2>
+      <p class="inventory-section__intro">Formuliere deine Rückmeldung oder ergänze weitere Informationen.</p>
+    </div>
+
+  <form method="post" class="inventory-form forum-form">
+      <div class="input-control">
+        <label for="reply_content">Antwort</label>
+        <textarea id="reply_content" name="content" rows="4" class="input-field" placeholder="Antwort schreiben..." required></textarea>
       </div>
-
-      <?php if ($canEdit): ?>
-      <div class="post-buttons">
-        <button class="btn-danger" onclick="toggleEdit(<?= $p['id'] ?>)">Bearbeiten</button>
-        <form method="post">
-          <input type="hidden" name="post_id" value="<?= $p['id'] ?>">
-          <button class="btn-danger" name="delete_post">Löschen</button>
-        </form>
-      </div>
-
-      <form method="post" class="edit-box" id="edit_<?= $p['id'] ?>">
-        <input type="hidden" name="post_id" value="<?= $p['id'] ?>">
-        <textarea name="content" rows="4" class="forum-input"><?= h($p['content']) ?></textarea>
-
-        <!-- DROPDOWN -->
-        <button type="button" class="emoji-toggle" onclick="togglePicker(this)">😊 Emojis ▼</button>
-        <div class="emoji-picker">
+      <div class="forum-emoji-toolbar">
+        <button type="button" class="forum-emoji-toggle" onclick="togglePicker(this)">😊 Emojis ▼</button>
+        <div class="forum-emoji-picker">
           <?php foreach($emoji_list as $em): ?>
-            <span class="emoji-btn" onclick="addEmojiTo('#edit_<?= $p['id'] ?> textarea[name=content]', '<?= $em ?>')"><?= $em ?></span>
+            <span class="forum-emoji" onclick="addEmojiTo('#reply_content', '<?= $em ?>')"><?= $em ?></span>
           <?php endforeach; ?>
         </div>
-
-        <button class="button-main" name="save_edit" style="margin-top:8px;">Speichern</button>
-      </form>
-      <?php endif; ?>
-
-    </div>
-  </div>
-  <?php endforeach; ?>
-
-  <div class="forum-card" style="margin-top:16px;">
-    <form method="post">
-      <textarea name="content" rows="4" class="forum-input" placeholder="Antwort schreiben..." required></textarea>
-
-      <!-- DROPDOWN -->
-      <button type="button" class="emoji-toggle" onclick="togglePicker(this)">😊 Emojis ▼</button>
-      <div class="emoji-picker">
-        <?php foreach($emoji_list as $em): ?>
-          <span class="emoji-btn" onclick="addEmojiTo('textarea[name=content]', '<?= $em ?>')"><?= $em ?></span>
-        <?php endforeach; ?>
       </div>
-
-      <button name="reply" class="button-main" style="margin-top:8px;">Antwort posten</button>
+      <div class="form-actions">
+        <button name="reply" class="inventory-submit">Antwort posten</button>
+      </div>
     </form>
+    </section>
+</main>
+
+<footer id="main-footer">
+  <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
+
+  <div class="footer-buttons">
+    <a href="/forum_room.php?id=<?= $thread['room_id'] ?>" class="footer-btn">← Zurück</a>
+    <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
   </div>
-</div>
+</footer>
 
 <script>
 function toggleEdit(id){
-  document.getElementById("edit_"+id).classList.toggle("show");
-  document.getElementById("content_"+id).classList.toggle("show");
+  const form = document.getElementById('edit_'+id);
+  const content = document.getElementById('content_'+id);
+  if (form) { form.classList.toggle('is-open'); }
+  if (content) { content.classList.toggle('is-hidden'); }
 }
 function togglePicker(btn){
   const box = btn.nextElementSibling;
+  if (!box) return;
   box.style.display = (box.style.display==='none'||!box.style.display) ? 'flex' : 'none';
 }
 function addEmojiTo(selector, e){
@@ -218,21 +271,12 @@ function addEmojiTo(selector, e){
   el.selectionStart = el.selectionEnd = s + e.length;
   el.focus();
 }
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.emoji-toggle') && !e.target.closest('.emoji-picker')){
-    document.querySelectorAll('.emoji-picker').forEach(b=>b.style.display='none');
+window.addEventListener('click',e=>{
+  if(!e.target.closest('.forum-emoji-toggle') && !e.target.closest('.forum-emoji-picker')){
+    document.querySelectorAll('.forum-emoji-picker').forEach(b=>b.style.display='none');
   }
 });
 </script>
-<footer id="main-footer">
-  <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
-
-  <div class="footer-buttons">
-    <a href="/forum_room.php?id=<?= $thread['room_id'] ?>" class="footer-btn">← Zurück</a>
-    <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
-  </div>
-</footer>
-
 
 <script src="/script.js"></script>
 </body>

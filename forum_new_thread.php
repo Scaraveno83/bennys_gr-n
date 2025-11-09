@@ -11,6 +11,14 @@ $room = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$room) { die("Raum nicht gefunden."); }
 if (!forum_can_write($pdo, $me, $room_id)) { die("Keine Schreibrechte in diesem Raum."); }
 
+$threadCountStmt = $pdo->prepare("SELECT COUNT(*) FROM forum_threads WHERE room_id = ?");
+$threadCountStmt->execute([$room_id]);
+$threadCount = (int)$threadCountStmt->fetchColumn();
+
+$activityStmt = $pdo->prepare("SELECT MAX(p.created_at) FROM forum_posts p JOIN forum_threads t ON t.id = p.thread_id WHERE t.room_id = ?");
+$activityStmt->execute([$room_id]);
+$latestActivity = $activityStmt->fetchColumn();
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $title = trim($_POST["title"] ?? '');
     $content = trim($_POST["content"] ?? '');
@@ -54,60 +62,84 @@ $emoji_list = [
 <link rel="stylesheet" href="/header.css">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/forum.css">
-<style>
-/* deine vorhandenen Klassen bleiben; nur ein kleiner Abstand unter dem Picker */
-.emoji-picker{margin-top:8px;}
-.emoji-toggle{margin-top:6px;background:#262626;border:1px solid rgba(57,255,20,.35);padding:6px 10px;border-radius:8px;color:#fff;cursor:pointer}
-.emoji-btn{font-size:22px;cursor:pointer;padding:2px 4px}
-.emoji-btn:hover{background:rgba(57,255,20,.2);border-radius:6px}
-</style>
 </head>
 <body>
 <?php include __DIR__ . '/header.php'; ?>
 
-<div class="forum-wrap">
-  <div class="forum-card">
-    <h2 class="forum-title"><?= h(($room['icon'] ?? '').' Neues Thema in „'.($room['title'] ?? '').'“') ?></h2>
+<main class="inventory-page forum-page">
+  <header class="inventory-header forum-header">
+    <div>
+      <h1 class="inventory-title"><?= h(($room['icon'] ?? '') . ' Neues Thema in „' . ($room['title'] ?? '') . '“') ?></h1>
+      <p class="inventory-description">Starte eine neue Diskussion, um Aufgaben, Einsätze oder Ideen für diesen Bereich festzuhalten.</p>
+    </div>
+   <div class="inventory-metrics">
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Bestehende Themen</span>
+        <span class="inventory-metric__value"><?= $threadCount ?></span>
+        <span class="inventory-metric__hint">im ausgewählten Raum</span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Letzte Aktivität</span>
+        <span class="inventory-metric__value"><?= $latestActivity ? date('d.m.Y', strtotime($latestActivity)) : '—' ?></span>
+        <span class="inventory-metric__hint"><?= $latestActivity ? date('H:i \U\h\r', strtotime($latestActivity)) : 'Noch keine Beiträge' ?></span>
+      </div>
+    </div>
+    </header>
+
+  <section class="inventory-section forum-section">
+    <div>
+      <h2 class="forum-section__title">Thread anlegen</h2>
+      <p class="inventory-section__intro">Wähle einen prägnanten Titel und beschreibe dein Anliegen ausführlich, damit das Team schnell reagieren kann.</p>
+    </div>
+
+    <form method="post" class="inventory-form forum-form">
+      <div class="input-control">
+        <label for="thread_title">Titel</label>
+        <input type="text" id="thread_title" name="title" class="input-field" placeholder="Kurzer, klarer Betreff…" required>
+        <div class="forum-emoji-toolbar">
+          <button type="button" class="forum-emoji-toggle" onclick="togglePicker(this)">😊 Emojis ▼</button>
+          <div class="forum-emoji-picker">
+            <?php foreach($emoji_list as $em): ?>
+              <span class="forum-emoji" onclick="addEmojiTo('#thread_title', '<?= $em ?>')"><?= $em ?></span>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+   <div class="input-control">
+        <label for="thread_content">Beitrag</label>
+        <textarea id="thread_content" name="content" rows="6" class="input-field" placeholder="Beschreibe dein Anliegen oder deine Frage…" required></textarea>
+        <div class="forum-emoji-toolbar">
+          <button type="button" class="forum-emoji-toggle" onclick="togglePicker(this)">😊 Emojis ▼</button>
+          <div class="forum-emoji-picker">
+            <?php foreach($emoji_list as $em): ?>
+              <span class="forum-emoji" onclick="addEmojiTo('#thread_content', '<?= $em ?>')"><?= $em ?></span>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="inventory-submit">Thema erstellen</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<footer id="main-footer">
+  <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
+
+  <div class="footer-buttons">
+    <a href="/forum_room.php?id=<?= $room_id ?>" class="footer-btn">← Zurück</a>
+    <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
   </div>
-
-  <form method="post" class="forum-form">
-
-    <!-- TITEL -->
-    <label style="display:flex;align-items:center;gap:10px;">
-      Titel:
-      <button type="button" class="emoji-toggle" style="margin:0" onclick="togglePickerById('picker-title')">😊 Emojis ▼</button>
-    </label>
-    <!-- Picker direkt UNTER dem Button, ÜBER dem Feld -->
-    <div id="picker-title" class="emoji-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:8px;background:#1a1a1a;border:1px solid rgba(57,255,20,.35);border-radius:10px;">
-      <?php foreach($emoji_list as $em): ?>
-        <span class="emoji-btn" onclick="addEmojiTo('input[name=title]', '<?= $em ?>')"><?= $em ?></span>
-      <?php endforeach; ?>
-    </div>
-    <!-- Titel-Feld -->
-    <input type="text" name="title" class="forum-input" placeholder="Kurzer, klarer Betreff…" required>
-
-    <!-- BEITRAG -->
-    <label style="display:flex;align-items:center;gap:10px;margin-top:12px;">
-      Beitrag:
-      <button type="button" class="emoji-toggle" style="margin:0" onclick="togglePickerById('picker-content')">😊 Emojis ▼</button>
-    </label>
-    <!-- Picker direkt UNTER dem Button, ÜBER dem Feld -->
-    <div id="picker-content" class="emoji-picker" style="display:none;flex-wrap:wrap;gap:6px;padding:8px;background:#1a1a1a;border:1px solid rgba(57,255,20,.35);border-radius:10px;">
-      <?php foreach($emoji_list as $em): ?>
-        <span class="emoji-btn" onclick="addEmojiTo('textarea[name=content]', '<?= $em ?>')"><?= $em ?></span>
-      <?php endforeach; ?>
-    </div>
-    <!-- Textarea -->
-    <textarea name="content" rows="6" class="forum-input" required></textarea>
-
-    <button class="button-main" style="margin-top:12px;">Thema erstellen</button>
-  </form>
-</div>
+</footer>
 
 <script>
-function togglePickerById(id){
-  const box = document.getElementById(id);
-  box.style.display = (box.style.display==='none' || !box.style.display) ? 'flex' : 'none';
+function togglePicker(btn){
+  const box = btn.nextElementSibling;
+  if (!box) return;
+  box.style.display = (box.style.display==='none'||!box.style.display) ? 'flex' : 'none';
 }
 function addEmojiTo(selector, e){
   const el = document.querySelector(selector);
@@ -118,21 +150,12 @@ function addEmojiTo(selector, e){
   el.selectionStart = el.selectionEnd = s + e.length;
   el.focus();
 }
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.emoji-toggle') && !e.target.closest('.emoji-picker')){
-    document.querySelectorAll('.emoji-picker').forEach(b=>b.style.display='none');
+window.addEventListener('click',e=>{
+  if(!e.target.closest('.forum-emoji-toggle') && !e.target.closest('.forum-emoji-picker')){
+    document.querySelectorAll('.forum-emoji-picker').forEach(b=>b.style.display='none');
   }
 });
 </script>
-<footer id="main-footer">
-  <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
-
-  <div class="footer-buttons">
-    <a href="/forum_room.php?id=<?= $room_id ?>" class="footer-btn">← Zurück</a>
-    <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
-  </div>
-</footer>
-
 
 
 <script src="/script.js"></script>
