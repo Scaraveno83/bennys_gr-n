@@ -193,8 +193,14 @@ if ($isAdmin) {
       <div class="input-control">
         <span class="input-label">Aktion</span>
         <div class="inventory-radio-group">
-          <label><input type="radio" name="aktion" value="hinzugefügt" checked> Hinzufügen</label>
-          <label><input type="radio" name="aktion" value="entnommen"> Entnehmen</label>
+          <label class="inventory-radio">
+            <input type="radio" name="aktion" value="hinzugefügt" checked>
+            <span>Hinzufügen</span>
+          </label>
+          <label class="inventory-radio">
+            <input type="radio" name="aktion" value="entnommen">
+            <span>Entnehmen</span>
+          </label>
         </div>
       </div>
 
