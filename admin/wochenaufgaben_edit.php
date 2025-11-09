@@ -12,22 +12,21 @@ $mitarbeiter_liste = $stmt_mitarbeiter->fetchAll(PDO::FETCH_COLUMN);
 
 /* === Archivierung manuell anstoßen === */
 if (isset($_GET['archive'])) {
-  $stmt = $pdo->prepare("
-    SELECT * FROM wochenaufgaben
-    WHERE YEARWEEK(datum, 1) < YEARWEEK(CURDATE(), 1)
-  ");
+  $stmt = $pdo->prepare("SELECT * FROM wochenaufgaben WHERE YEARWEEK(datum, 1) < YEARWEEK(CURDATE(), 1)");
   $stmt->execute();
   $alte = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
   if ($alte) {
-    $archiv = $pdo->prepare("
-      INSERT INTO wochenaufgaben_archiv (mitarbeiter, produkt, menge, datum, kalenderwoche)
-      VALUES (?, ?, ?, ?, ?)
-    ");
+    $archiv = $pdo->prepare("INSERT INTO wochenaufgaben_archiv (mitarbeiter, produkt, menge, datum, kalenderwoche)
+                             VALUES (?, ?, ?, ?, ?)");
     $del = $pdo->prepare("DELETE FROM wochenaufgaben WHERE id = ?");
     foreach ($alte as $row) {
       $archiv->execute([
-        $row['mitarbeiter'], $row['produkt'], $row['menge'], $row['datum'], date('o-W', strtotime($row['datum']))
+        $row['mitarbeiter'],
+        $row['produkt'],
+        $row['menge'],
+        $row['datum'],
+        date('o-W', strtotime($row['datum']))
       ]);
       $del->execute([$row['id']]);
     }
@@ -46,10 +45,7 @@ if (isset($_GET['delete'])) {
 
 /* === HINZUFÜGEN === */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
-  $stmt = $pdo->prepare("
-    INSERT INTO wochenaufgaben (mitarbeiter, produkt, menge, datum)
-    VALUES (?, ?, ?, NOW())
-  ");
+  $stmt = $pdo->prepare("INSERT INTO wochenaufgaben (mitarbeiter, produkt, menge, datum) VALUES (?, ?, ?, NOW())");
   $stmt->execute([
     trim($_POST['mitarbeiter']),
     trim($_POST['produkt']),
@@ -61,9 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
 
 /* === BEARBEITEN === */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
-  $stmt = $pdo->prepare("
-    UPDATE wochenaufgaben SET mitarbeiter=?, produkt=?, menge=? WHERE id=?
-  ");
+  $stmt = $pdo->prepare("UPDATE wochenaufgaben SET mitarbeiter=?, produkt=?, menge=? WHERE id=?");
   $stmt->execute([
     trim($_POST['mitarbeiter']),
     trim($_POST['produkt']),
@@ -81,13 +75,11 @@ $eintraege = $pdo->query("SELECT * FROM wochenaufgaben ORDER BY datum DESC")->fe
 $montag = date('Y-m-d', strtotime('monday this week'));
 $sonntag = date('Y-m-d 23:59:59', strtotime('sunday this week'));
 
-$stmt = $pdo->prepare("
-  SELECT mitarbeiter, produkt, SUM(menge) as summe
-  FROM wochenaufgaben
-  WHERE datum BETWEEN ? AND ?
-  GROUP BY mitarbeiter, produkt
-  ORDER BY mitarbeiter
-");
+$stmt = $pdo->prepare("SELECT mitarbeiter, produkt, SUM(menge) as summe
+                       FROM wochenaufgaben
+                       WHERE datum BETWEEN ? AND ?
+                       GROUP BY mitarbeiter, produkt
+                       ORDER BY mitarbeiter");
 $stmt->execute([$montag, $sonntag]);
 $daten = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -103,112 +95,111 @@ foreach ($daten as $row) {
   $statistik[$m][$p] = $menge;
   $statistik[$m]['Gesamt'] += $menge;
 }
+
+$anzahlEintraege = count($eintraege);
+$gesamtMenge = array_sum(array_map(static fn($entry) => (int)$entry['menge'], $eintraege));
+$letzteAktualisierung = $eintraege[0]['datum'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Wochenaufgaben verwalten | Admin</title>
-
+<title>📦 Wochenaufgaben verwalten | Admin</title>
 <link rel="stylesheet" href="../header.css" />
 <link rel="stylesheet" href="../styles.css" />
 <style>
-main, .cards-section { padding:120px 50px 60px; max-width:1300px; margin:0 auto; text-align:center; }
-.card, .form-card, .table-card, .statistik-card {
-  background:rgba(25,25,25,0.9);
-  border:1px solid rgba(57,255,20,0.4);
-  border-radius:15px;
-  padding:25px;
-  margin-bottom:40px;
-  color:#fff;
-  box-shadow:0 0 15px rgba(57,255,20,0.25);
+.inventory-page.admin-inventory-page {
+  gap: 32px;
 }
-form input, form select {
-  width:100%;
-  padding:10px;
-  margin-bottom:12px;
-  border-radius:10px;
-  border:1px solid rgba(57,255,20,0.35);
-  background:rgba(20,20,20,0.9);
-  color:#fff;
+
+.weekly-grid {
+  display: grid;
+  gap: 20px;
 }
-form button {
-  background:linear-gradient(90deg,#39ff14,#76ff65);
-  border:none;
-  padding:10px 20px;
-  border-radius:8px;
-  color:#fff;
-  cursor:pointer;
-  transition:.3s;
+
+@media (min-width: 960px) {
+  .weekly-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-form button:hover {
-  transform:scale(1.05);
-  box-shadow:0 0 15px rgba(57,255,20,0.6);
+
+.weekly-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
-table {
-  width:100%;
-  border-collapse:collapse;
-  margin-top:20px;
-}
-th,td {
-  border:1px solid rgba(57,255,20,0.3);
-  padding:10px;
-  vertical-align:middle;
-}
-th {
-  background:rgba(57,255,20,0.18);
-  color:#76ff65;
-}
-.actions {
-  display:flex;
-  justify-content:center;
-  gap:8px;
-}
-.btn-archive {
-  display:inline-block;
-  margin-top:10px;
-  background:#39ff14;
-  color:#fff;
-  padding:10px 18px;
-  border-radius:8px;
-  text-decoration:none;
-  transition:.3s;
-}
-.btn-archive:hover { background:#76ff65; }
-.notice {
-  background:rgba(20,60,20,.85);
-  border:1px solid #4CAF50;
-  padding:14px 16px;
-  margin:8px auto 24px;
-  border-radius:10px;
-  color:#dff6df;
-  max-width:640px;
-  box-shadow:0 0 14px rgba(76,175,80,.25);
+
+.weekly-table select,
+.weekly-table input[type="number"] {
+  width: 100%;
+  background: rgba(10, 12, 13, 0.9);
+  border: 1px solid rgba(57, 255, 20, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #fff;
+  font: inherit;
 }
 </style>
 </head>
 <body>
 <?php include '../header.php'; ?>
 
-<main>
-  <section class="cards-section">
-    <h2 class="section-title">📦 Wochenaufgaben verwalten</h2>
+<main class="inventory-page admin-inventory-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">📦 Wochenaufgaben verwalten</h1>
+    <p class="inventory-description">
+      Koordiniere Aufgaben, Produktionsziele und Lagerabgaben für jede Woche. Alle Änderungen werden live im Team-Dashboard angezeigt.
+    </p>
+    <p class="inventory-info">
+      Letzte Aktualisierung:
+      <?= $letzteAktualisierung ? date('d.m.Y H:i \U\h\r', strtotime($letzteAktualisierung)) : 'Noch keine Einträge erfasst' ?>
+    </p>
 
-    <?php if (isset($_GET['archived'])): ?>
-      <div class="notice">
+    <div class="inventory-metrics">
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Aktive Einträge</span>
+        <span class="inventory-metric__value"><?= number_format($anzahlEintraege, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">für diese Woche</span>
+      </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Gesamtmenge</span>
+        <span class="inventory-metric__value"><?= number_format($gesamtMenge, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">über alle Produkte</span>
+      </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Produkte</span>
+        <span class="inventory-metric__value"><?= count($produkte) ?></span>
+        <span class="inventory-metric__hint">definierte Ressourcen</span>
+      </article>
+    </div>
+  </header>
+
+  <?php if (isset($_GET['archived'])): ?>
+    <section class="inventory-section">
+      <h2>Archivierung</h2>
+      <p class="inventory-section__intro" style="color:#86ffb5;">
         ✅ Alte Wochen wurden erfolgreich archiviert.
-      </div>
-    <?php endif; ?>
+      </p>
+    </section>
+  <?php endif; ?>
 
-    <a href="?archive=1" class="btn-archive">📁 Alte Wochen archivieren</a>
-    <a href="wochenaufgaben_archiv_edit.php" class="btn-archive" style="background:#666;">📚 Archiv ansehen</a>
+  <section class="inventory-section">
+    <h2>Schnellaktionen</h2>
+    <div class="weekly-actions">
+      <a href="?archive=1" class="inventory-submit inventory-submit--ghost">📁 Alte Wochen archivieren</a>
+      <a href="wochenaufgaben_archiv_edit.php" class="inventory-submit inventory-submit--ghost">📚 Archiv ansehen</a>
+    </div>
+  </section>
 
-    <!-- Statistik -->
-    <div class="card glass statistik-card">
-      <h3>📊 Wochenstatistik (<?= date('d.m.Y', strtotime($montag)) ?> – <?= date('d.m.Y', strtotime($sonntag)) ?>)</h3>
-      <?php if (!empty($statistik)): ?>
-        <table class="admin-table">
+  <section class="inventory-section">
+    <h2>Wochenstatistik</h2>
+    <p class="inventory-section__intro">
+      Zeitraum: <?= date('d.m.Y', strtotime($montag)) ?> – <?= date('d.m.Y', strtotime($sonntag)) ?>
+    </p>
+    <?php if (!empty($statistik)): ?>
+      <div class="table-wrap">
+        <table class="data-table weekly-table">
           <thead>
             <tr>
               <th>Mitarbeiter</th>
@@ -220,85 +211,114 @@ th {
             <?php foreach ($statistik as $mitarbeiter => $werte): ?>
               <tr>
                 <td><strong><?= htmlspecialchars($mitarbeiter) ?></strong></td>
-                <?php foreach ($produkte as $p): ?><td><?= $werte[$p] ?: '-' ?></td><?php endforeach; ?>
+                <?php foreach ($produkte as $p): ?>
+                  <td><?= $werte[$p] ?: '–' ?></td>
+                <?php endforeach; ?>
                 <td><strong><?= $werte['Gesamt'] ?></strong></td>
               </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
-      <?php else: ?><p>Keine Daten für diese Woche.</p><?php endif; ?>
-    </div>
+      </div>
+    <?php else: ?>
+      <p class="inventory-section__intro">Keine Daten für die laufende Woche.</p>
+    <?php endif; ?>
+  </section>
 
-    <!-- Formular -->
-    <div class="card glass form-card">
-      <h3>➕ Neuer Eintrag</h3>
-      <form method="post">
-        <input type="hidden" name="add" value="1">
-        <label>Mitarbeiter:</label>
-        <select name="mitarbeiter" required>
+  <section class="inventory-section">
+    <h2>Neuen Eintrag erstellen</h2>
+    <form method="post" class="inventory-form weekly-grid">
+      <input type="hidden" name="add" value="1">
+
+      <div class="input-control">
+        <label for="mitarbeiter_add">Mitarbeiter:in</label>
+        <select id="mitarbeiter_add" name="mitarbeiter" class="inventory-select" required>
           <option value="">– Mitarbeiter wählen –</option>
           <?php foreach ($mitarbeiter_liste as $m): ?>
-            <option><?= htmlspecialchars($m) ?></option>
+            <option value="<?= htmlspecialchars($m) ?>"><?= htmlspecialchars($m) ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
 
-        <label>Produkt:</label>
-        <select name="produkt" required>
+      <div class="input-control">
+        <label for="produkt_add">Produkt</label>
+        <select id="produkt_add" name="produkt" class="inventory-select" required>
           <option value="">– Produkt wählen –</option>
           <?php foreach ($produkte as $p): ?>
-            <option><?= htmlspecialchars($p) ?></option>
+            <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
 
-        <label>Menge:</label>
-        <input type="number" name="menge" min="1" placeholder="z. B. 50" required>
+      <div class="input-control">
+        <label for="menge_add">Menge</label>
+        <input id="menge_add" class="input-field" type="number" name="menge" min="1" placeholder="z. B. 50" required>
+      </div>
 
-        <button type="submit" class="btn btn-primary">+ Eintrag speichern</button>
-      </form>
-    </div>
+      <div class="form-actions" style="align-self:end;">
+        <button type="submit" class="inventory-submit">+ Eintrag speichern</button>
+      </div>
+    </form>
+  </section>
 
-    <!-- Einträge -->
-    <div class="card glass table-card">
-      <h3>📋 Bestehende Einträge</h3>
-      <?php if ($eintraege): ?>
-        <table class="admin-table">
-          <thead><tr><th>ID</th><th>Mitarbeiter</th><th>Produkt</th><th>Menge</th><th>Datum</th><th>Aktionen</th></tr></thead>
+  <section class="inventory-section">
+    <h2>Aktive Einträge</h2>
+    <?php if ($eintraege): ?>
+      <div class="table-wrap">
+        <table class="data-table weekly-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Mitarbeiter</th>
+              <th>Produkt</th>
+              <th>Menge</th>
+              <th>Datum</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
           <tbody>
             <?php foreach ($eintraege as $e): ?>
-            <tr>
-              <form method="post">
-                <td><?= $e['id'] ?></td>
-                <td>
-                  <select name="mitarbeiter" required>
-                    <?php foreach ($mitarbeiter_liste as $m): ?>
-                      <option value="<?= htmlspecialchars($m) ?>" <?= ($e['mitarbeiter'] === $m) ? 'selected' : '' ?>><?= htmlspecialchars($m) ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </td>
-                <td>
-                  <select name="produkt" required>
-                    <?php foreach ($produkte as $p): ?>
-                      <option value="<?= htmlspecialchars($p) ?>" <?= ($e['produkt'] === $p) ? 'selected' : '' ?>><?= htmlspecialchars($p) ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </td>
-                <td><input type="number" name="menge" value="<?= $e['menge'] ?>" min="1"></td>
-                <td><?= date('d.m.Y H:i', strtotime($e['datum'])) ?></td>
-                <td class="actions">
-                  <input type="hidden" name="edit_id" value="<?= $e['id'] ?>">
-                  <button type="submit" class="btn btn-primary" title="Speichern">💾</button>
-                  <a class="btn btn-ghost" href="?delete=<?= $e['id'] ?>" onclick="return confirm('Eintrag wirklich löschen?')" title="Löschen">🗑️</a>
-                </td>
-              </form>
-            </tr>
+              <tr>
+                <form method="post" class="weekly-edit-form">
+                  <td><?= $e['id'] ?></td>
+                  <td>
+                    <select name="mitarbeiter" required>
+                      <?php foreach ($mitarbeiter_liste as $m): ?>
+                        <option value="<?= htmlspecialchars($m) ?>" <?= ($e['mitarbeiter'] === $m) ? 'selected' : '' ?>><?= htmlspecialchars($m) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </td>
+                  <td>
+                    <select name="produkt" required>
+                      <?php foreach ($produkte as $p): ?>
+                        <option value="<?= htmlspecialchars($p) ?>" <?= ($e['produkt'] === $p) ? 'selected' : '' ?>><?= htmlspecialchars($p) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </td>
+                  <td><input type="number" name="menge" value="<?= $e['menge'] ?>" min="1"></td>
+                  <td><?= date('d.m.Y H:i', strtotime($e['datum'])) ?></td>
+                  <td class="weekly-actions">
+                    <input type="hidden" name="edit_id" value="<?= $e['id'] ?>">
+                    <button type="submit" class="inventory-submit inventory-submit--small">💾</button>
+                    <a class="inventory-submit inventory-submit--ghost inventory-submit--small" href="?delete=<?= $e['id'] ?>"
+                       onclick="return confirm('Eintrag wirklich löschen?')">🗑️</a>
+                  </td>
+                </form>
+              </tr>
             <?php endforeach; ?>
           </tbody>
         </table>
-      <?php else: ?><p>Keine Einträge vorhanden.</p><?php endif; ?>
-    </div>
+      </div>
+    <?php else: ?>
+      <p class="inventory-section__intro">Keine Einträge vorhanden.</p>
+    <?php endif; ?>
+  </section>
 
-    <div class="back-wrap" style="margin-top:28px;text-align:center;">
-      <a href="dashboard.php" class="btn btn-ghost">← Zurück zum Dashboard</a>
+  <section class="inventory-section">
+    <h2>Schnellzugriff</h2>
+    <div class="form-actions" style="justify-content:flex-start;">
+      <a href="dashboard.php" class="button-secondary">← Zurück zum Dashboard</a>
+      <a href="wochenaufgaben_archiv_edit.php" class="button-secondary">📚 Archiv</a>
     </div>
   </section>
 </main>

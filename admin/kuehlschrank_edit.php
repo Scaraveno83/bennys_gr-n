@@ -40,8 +40,9 @@ if (isset($_POST['archivieren'])) {
 
   $kosten = $pdo->query("SELECT * FROM kuehlschrank_wochenkosten WHERE woche_start = '$montag'")->fetchAll(PDO::FETCH_ASSOC);
   foreach ($kosten as $k) {
-    $pdo->prepare("INSERT INTO kuehlschrank_archiv (mitarbeiter, gesamt_kosten, woche, archiviert_am)
-                   VALUES (?, ?, ?, NOW())")->execute([$k['mitarbeiter'], $k['gesamt_kosten'], $woche]);
+    $pdo->prepare("INSERT INTO kuehlschrank_archiv (mitarbeiter, gesamt_kosten, woche, archiviert_am)" .
+                  " VALUES (?, ?, ?, NOW())")
+        ->execute([$k['mitarbeiter'], $k['gesamt_kosten'], $woche]);
   }
   $pdo->prepare("DELETE FROM kuehlschrank_wochenkosten WHERE woche_start = ?")->execute([$montag]);
   header("Location: kuehlschrank_edit.php?done=1");
@@ -52,6 +53,13 @@ if (isset($_POST['archivieren'])) {
 $produkte = $pdo->query("SELECT * FROM kuehlschrank_lager ORDER BY kategorie, produkt")->fetchAll(PDO::FETCH_ASSOC);
 $kosten = $pdo->query("SELECT * FROM kuehlschrank_wochenkosten ORDER BY gesamt_kosten DESC")->fetchAll(PDO::FETCH_ASSOC);
 $verlauf = $pdo->query("SELECT * FROM kuehlschrank_verlauf ORDER BY datum DESC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
+
+$lowStockThreshold = 5;
+$anzahlProdukte = count($produkte);
+$gesamtBestand = array_sum(array_map(static fn($row) => (int)$row['bestand'], $produkte));
+$gesamtWert = array_sum(array_map(static fn($row) => (float)$row['preis'] * (int)$row['bestand'], $produkte));
+$summeKosten = array_sum(array_map(static fn($row) => (float)$row['gesamt_kosten'], $kosten));
+$letzteAktualisierung = $verlauf[0]['datum'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -61,104 +69,200 @@ $verlauf = $pdo->query("SELECT * FROM kuehlschrank_verlauf ORDER BY datum DESC L
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../header.css">
 <style>
-main { max-width: 1200px; margin: 120px auto; padding: 20px; text-align:center; color:#fff; }
-.card { background:rgba(25,25,25,0.9); border:1px solid rgba(57,255,20,0.4); border-radius:15px; padding:25px; margin-bottom:40px; box-shadow:0 0 18px rgba(57,255,20,0.25); }
-table { width:100%; border-collapse:collapse; margin-top:15px; }
-th,td { border:1px solid rgba(57,255,20,0.25); padding:10px; }
-th { background:rgba(57,255,20,0.15); color:#76ff65; text-shadow:0 0 10px rgba(57,255,20,0.5); }
-input,select { padding:8px; border-radius:6px; border:1px solid rgba(57,255,20,0.3); background:rgba(20,20,20,0.9); color:#fff; }
-button { background:linear-gradient(90deg,#39ff14,#76ff65); border:none; padding:8px 14px; border-radius:8px; color:#fff; cursor:pointer; transition:.3s; box-shadow:0 0 14px rgba(57,255,20,0.35); }
-button:hover { transform:scale(1.05); box-shadow:0 0 18px rgba(57,255,20,0.6); }
+.inventory-page.admin-inventory-page {
+  gap: 32px;
+}
+
+.inventory-section--split {
+  display: grid;
+  gap: 24px;
+}
+
+@media (min-width: 960px) {
+  .inventory-section--split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.inventory-history-table td .badge {
+  justify-content: center;
+  min-width: 110px;
+}
 </style>
 </head>
 <body>
 <?php include '../header.php'; ?>
 
-<main>
-  <h2>🧊 Kühlschranklager verwalten</h2>
+<main class="inventory-page admin-inventory-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">🧊 Kühlschranklager verwalten</h1>
+    <p class="inventory-description">
+      Behalte Snacks, Getränke und Kosten für das Team im Blick. Hier pflegst du Sortiment, Bestände und Wochenabschlüsse.
+    </p>
+    <p class="inventory-info">
+      Letzte Aktion:
+      <?= $letzteAktualisierung ? date('d.m.Y H:i \U\h\r', strtotime($letzteAktualisierung)) : 'Noch keine Buchung erfasst' ?>
+    </p>
+
+    <div class="inventory-metrics">
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Produkte gelistet</span>
+        <span class="inventory-metric__value"><?= number_format($anzahlProdukte, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">nach Kategorie sortiert</span>
+      </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Bestand gesamt</span>
+        <span class="inventory-metric__value"><?= number_format($gesamtBestand, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">Einheiten verfügbar</span>
+      </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Warenwert</span>
+        <span class="inventory-metric__value">€ <?= number_format($gesamtWert, 2, ',', '.') ?></span>
+        <span class="inventory-metric__hint">theoretisch verfügbar</span>
+      </article>
+    </div>
+  </header>
+
   <?php if (isset($_GET['done'])): ?>
-    <p style="color:#00ff9d;">✅ Wochenabschluss erfolgreich archiviert.</p>
+    <section class="inventory-section">
+      <h2>Wochenabschluss</h2>
+      <p class="inventory-section__intro" style="color:#86ffb5;">
+        ✅ Wochenabschluss erfolgreich archiviert.
+      </p>
+    </section>
   <?php endif; ?>
 
-  <!-- Produkt hinzufügen -->
-  <div class="card">
-    <h3>➕ Produkt hinzufügen / bearbeiten</h3>
-    <form method="post">
+  <section class="inventory-section">
+    <h2>Produkt hinzufügen oder anpassen</h2>
+    <p class="inventory-section__intro">
+      Trage neue Artikel ein oder aktualisiere bestehende – Preise wirken sich auf die Auswertung automatisch aus.
+    </p>
+
+    <form method="post" class="inventory-form">
       <input type="hidden" name="id" value="">
-      <input type="text" name="produkt_name" placeholder="Produktname" required>
-      <input type="number" name="bestand" placeholder="Bestand" required>
-      <input type="number" step="0.01" name="preis" placeholder="Preis (€)" required>
-      <select name="kategorie">
-        <option value="Essen">Essen</option>
-        <option value="Trinken">Trinken</option>
-      </select>
-      <button type="submit">💾 Speichern</button>
+
+      <div class="inventory-section--split">
+        <div class="input-control">
+          <label for="produkt_name">Produktname</label>
+          <input id="produkt_name" class="input-field" type="text" name="produkt_name" placeholder="z. B. Mate" required>
+        </div>
+
+        <div class="input-control">
+          <label for="bestand">Bestand</label>
+          <input id="bestand" class="input-field" type="number" name="bestand" min="0" placeholder="z. B. 24" required>
+        </div>
+
+        <div class="input-control">
+          <label for="preis">Preis (€)</label>
+          <input id="preis" class="input-field" type="number" step="0.01" name="preis" min="0" placeholder="1.50" required>
+        </div>
+
+        <div class="input-control">
+          <label for="kategorie">Kategorie</label>
+          <select id="kategorie" name="kategorie" class="inventory-select">
+            <option value="Essen">Essen</option>
+            <option value="Trinken">Trinken</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="inventory-submit">💾 Speichern</button>
+      </div>
     </form>
-  </div>
+  </section>
 
-  <!-- Aktuelle Produkte -->
-  <div class="card">
-    <h3>📦 Aktuelle Produkte</h3>
-    <table>
-      <thead><tr><th>Produkt</th><th>Kategorie</th><th>Bestand</th><th>Preis (€)</th><th>Aktion</th></tr></thead>
-      <tbody>
-        <?php foreach ($produkte as $p): ?>
+  <section class="inventory-section">
+    <h2>Aktuelle Produkte</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
           <tr>
-            <td><?= htmlspecialchars($p['produkt']) ?></td>
-            <td><?= htmlspecialchars($p['kategorie']) ?></td>
-            <td><?= (int)$p['bestand'] ?></td>
-            <td><?= number_format($p['preis'], 2, ',', '.') ?></td>
-            <td><a href="?delete=<?= $p['id'] ?>" onclick="return confirm('Wirklich löschen?')">🗑️</a></td>
+            <th>Produkt</th>
+            <th>Kategorie</th>
+            <th>Bestand</th>
+            <th>Preis (€)</th>
+            <th>Aktionen</th>
           </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
+        </thead>
+        <tbody>
+          <?php foreach ($produkte as $p): ?>
+            <tr>
+              <td><?= htmlspecialchars($p['produkt']) ?></td>
+              <td><span class="chip"><?= htmlspecialchars($p['kategorie']) ?></span></td>
+              <td class="<?= ((int)$p['bestand'] < $lowStockThreshold) ? 'low-stock' : '' ?>">
+                <?= number_format($p['bestand'], 0, ',', '.') ?>
+              </td>
+              <td>€ <?= number_format($p['preis'], 2, ',', '.') ?></td>
+              <td>
+                <a class="inventory-submit inventory-submit--ghost inventory-submit--small" href="?delete=<?= $p['id'] ?>"
+                   onclick="return confirm('Wirklich löschen?')">🗑️</a>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-  <!-- Mitarbeiterkosten -->
-  <div class="card">
-    <h3>💰 Aktuelle Wochenkosten (Mitarbeiter)</h3>
-    <table>
-      <thead><tr><th>Mitarbeiter</th><th>Kosten (€)</th><th>Woche</th></tr></thead>
-      <tbody>
-        <?php foreach ($kosten as $k): ?>
-          <tr>
-            <td><?= htmlspecialchars($k['mitarbeiter']) ?></td>
-            <td><?= number_format($k['gesamt_kosten'], 2, ',', '.') ?></td>
-            <td><?= htmlspecialchars($k['woche_start']) ?></td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+  <section class="inventory-section">
+    <h2>Aktuelle Wochenkosten</h2>
+    <p class="inventory-section__intro">
+      Gesamtsumme dieser Woche: <strong>€ <?= number_format($summeKosten, 2, ',', '.') ?></strong>
+    </p>
 
-    <form method="post" style="margin-top:20px;">␊
-      <button name="archivieren" type="submit" style="background:linear-gradient(90deg,#39ff14,#76ff65);box-shadow:0 0 16px rgba(57,255,20,0.5);">📦 Wochenabschluss & Archivierung</button>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Mitarbeiter</th><th>Kosten (€)</th><th>Woche</th></tr>
+        </thead>
+        <tbody>
+          <?php foreach ($kosten as $k): ?>
+            <tr>
+              <td><?= htmlspecialchars($k['mitarbeiter']) ?></td>
+              <td>€ <?= number_format($k['gesamt_kosten'], 2, ',', '.') ?></td>
+              <td><?= date('d.m.Y', strtotime($k['woche_start'])) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+
+    <form method="post" class="form-actions">
+      <button name="archivieren" type="submit" class="inventory-submit">📦 Wochenabschluss &amp; Archivierung</button>
     </form>
-  </div>
+  </section>
 
-  <!-- Verlauf -->
-  <div class="card">
-    <h3>🕒 Letzte Entnahmen</h3>
-    <table>
-      <thead><tr><th>Datum</th><th>Mitarbeiter</th><th>Produkt</th><th>Menge</th><th>Gesamt (€)</th></tr></thead>
-      <tbody>
-        <?php foreach ($verlauf as $v): ?>
-          <tr>
-            <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
-            <td><?= htmlspecialchars($v['mitarbeiter']) ?></td>
-            <td><?= htmlspecialchars($v['produkt']) ?></td>
-            <td><?= (int)$v['menge'] ?></td>
-            <td><?= number_format($v['gesamtpreis'], 2, ',', '.') ?></td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
+  <section class="inventory-section">
+    <h2>Letzte Entnahmen</h2>
+    <div class="table-wrap">
+      <table class="data-table inventory-history-table">
+        <thead>
+          <tr><th>Datum</th><th>Mitarbeiter</th><th>Produkt</th><th>Menge</th><th>Gesamt (€)</th></tr>
+        </thead>
+        <tbody>
+          <?php foreach ($verlauf as $v): ?>
+            <tr>
+              <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
+              <td><?= htmlspecialchars($v['mitarbeiter']) ?></td>
+              <td><?= htmlspecialchars($v['produkt']) ?></td>
+              <td><?= number_format($v['menge'], 0, ',', '.') ?></td>
+              <td>€ <?= number_format($v['gesamtpreis'], 2, ',', '.') ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-  <div class="back-wrap">
-    <a href="dashboard.php" class="btn btn-ghost">← Zurück zum Dashboard</a>
-    <a href="kuehlschrank_archiv.php" class="btn btn-ghost">📚 Zum Archiv</a>
-  </div>
+  <section class="inventory-section">
+    <h2>Schnellzugriff</h2>
+    <div class="form-actions" style="justify-content:flex-start;">
+      <a href="dashboard.php" class="button-secondary">← Zurück zum Dashboard</a>
+      <a href="kuehlschrank_archiv.php" class="button-secondary">📚 Zum Archiv</a>
+      <a href="lageruebersicht.php" class="button-secondary">📦 Lagerübersicht</a>
+    </div>
+  </section>
 </main>
 
 <footer id="main-footer">

@@ -67,6 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 /* === Daten laden === */
 $produkte = $pdo->query("SELECT * FROM buero_lager ORDER BY produkt ASC")->fetchAll(PDO::FETCH_ASSOC);
 $verlauf = $pdo->query("SELECT * FROM buero_lager_verlauf ORDER BY datum DESC LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
+
+$lowStockThreshold = 25;
+$gesamtBestand = array_sum(array_map(static fn($row) => (int)$row['bestand'], $produkte));
+$anzahlProdukte = count($produkte);
+$kritischeProdukte = array_reduce(
+  $produkte,
+  static fn($carry, $row) => $carry + (((int)$row['bestand'] < $lowStockThreshold) ? 1 : 0),
+  0
+);
+$letzteAktualisierung = $verlauf[0]['datum'] ?? null;
 ?>
 
 <!DOCTYPE html>
@@ -77,132 +87,170 @@ $verlauf = $pdo->query("SELECT * FROM buero_lager_verlauf ORDER BY datum DESC LI
 <link rel="stylesheet" href="../styles.css">
 <link rel="stylesheet" href="../header.css">
 <style>
-main {
-  max-width: 1200px;
-  margin: 120px auto;
-  padding: 20px;
-  text-align: center;
-  color: #fff;
+.inventory-page.admin-inventory-page {
+  gap: 32px;
 }
-h2, h3 { color: #76ff65; }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
+.inventory-history-table td .badge {
+  min-width: 120px;
+  justify-content: center;
 }
-th, td {
-  border: 1px solid rgba(57,255,20,0.3);
-  padding: 10px;
-}
-th {
-  background: rgba(57,255,20,0.15);
-  color: #76ff65;
-}
-tr:hover { background: rgba(57,255,20,0.08); }
 
-form {
-  margin-bottom: 30px;
-  background: rgba(25,25,25,0.9);
-  border: 1px solid rgba(57,255,20,0.3);
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(57,255,20,0.25);
+.inventory-history-table td .badge.glow {
+  color: #041004;
 }
-select, input {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(57,255,20,0.3);
-  background: rgba(30,30,30,0.9);
-  color: #fff;
+
+.inventory-history-table td .badge.negative {
+  color: #ffb4d4;
 }
-button {
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-  background: linear-gradient(90deg,#39ff14,#76ff65);
-  color: #fff;
-  cursor: pointer;
-  transition: .3s;
-}
-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(57,255,20,0.6);
-}
-.badge.plus { color: #4cff4c; font-weight: bold; }
-.badge.minus { color: #ff6b6b; font-weight: bold; }
 </style>
 </head>
 <body>
 <?php include '../header.php'; ?>
 
-<main>
-  <h2>📁 Bürolager verwalten</h2>
-  <p>Hier kannst du Bestände und Aktionen im Bürolager manuell korrigieren oder löschen.</p>
+<main class="inventory-page admin-inventory-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">📁 Bürolager verwalten</h1>
+    <p class="inventory-description">
+      Hier werden Büromaterialien nachgepflegt, korrigiert und bei Bedarf ausgebucht – schnell und transparent.
+    </p>
+    <p class="inventory-info">
+      Letzte Änderung:
+      <?= $letzteAktualisierung ? date('d.m.Y H:i \U\h\r', strtotime($letzteAktualisierung)) : 'Noch keine Buchung erfasst' ?>
+    </p>
 
-  <!-- 🔧 Manuelle Änderung -->
-  <form method="post">
-    <input type="hidden" name="update" value="1">
+    <div class="inventory-metrics">
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Gelagerte Produkte</span>
+        <span class="inventory-metric__value"><?= number_format($anzahlProdukte, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">inkl. Verbrauchsmaterial</span>
+      </article>
 
-    <label>Produkt:</label>
-    <select name="produkt" required>
-      <option value="">– Produkt wählen –</option>
-      <?php foreach ($produkteListe as $p): ?>
-        <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-      <?php endforeach; ?>
-    </select>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Bestand gesamt</span>
+        <span class="inventory-metric__value"><?= number_format($gesamtBestand, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">Einheiten verfügbar</span>
+      </article>
 
-    <label>Menge:</label>
-    <input type="number" name="menge" min="1" placeholder="Menge" required>
+      <article class="inventory-metric <?= $kritischeProdukte ? 'inventory-metric--alert' : '' ?>">
+        <span class="inventory-metric__label">Niedrige Füllstände</span>
+        <span class="inventory-metric__value"><?= number_format($kritischeProdukte, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">unter <?= $lowStockThreshold ?> Stück</span>
+      </article>
+    </div>
+  </header>
 
-    <label>Aktion:</label>
-    <select name="aktion">
-      <option value="hinzugefügt">+ Hinzufügen</option>
-      <option value="entnommen">– Entnehmen</option>
-    </select>
+  <section class="inventory-section">
+    <h2>Bestand anpassen</h2>
+    <p class="inventory-section__intro">
+      Erfasse Entnahmen oder Lieferungen, damit das Team jederzeit aktuelle Zahlen sieht.
+    </p>
 
-    <button type="submit">💾 Bestätigen</button>
-  </form>
+    <form method="post" class="inventory-form">
+      <input type="hidden" name="update" value="1">
 
-  <!-- 📦 Aktuelle Bestände -->
-  <h3>📦 Aktuelle Bestände</h3>
-  <table>
-    <thead>
-      <tr><th>Produkt</th><th>Bestand</th></tr>
-    </thead>
-    <tbody>
-      <?php foreach ($produkte as $p): ?>
-        <tr>
-          <td><?= htmlspecialchars($p['produkt']) ?></td>
-          <td><?= htmlspecialchars($p['bestand']) ?></td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+      <div class="input-control">
+        <label for="produkt">Produkt</label>
+        <select id="produkt" name="produkt" class="inventory-select" required>
+          <option value="">– Produkt wählen –</option>
+          <?php foreach ($produkteListe as $p): ?>
+            <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
 
-  <!-- 🕒 Verlauf -->
-  <h3 style="margin-top:40px;">🕒 Verlauf der letzten Aktionen</h3>
-  <table>
-    <thead>
-      <tr><th>Datum</th><th>Produkt</th><th>Menge</th><th>Aktion</th><th>Mitarbeiter</th><th>Löschen</th></tr>
-    </thead>
-    <tbody>
-      <?php foreach ($verlauf as $v): ?>
-        <tr>
-          <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
-          <td><?= htmlspecialchars($v['produkt']) ?></td>
-          <td><?= htmlspecialchars($v['menge']) ?></td>
-          <td><span class="badge <?= $v['aktion']==='hinzugefügt'?'plus':'minus' ?>"><?= htmlspecialchars($v['aktion']) ?></span></td>
-          <td><?= htmlspecialchars($v['mitarbeiter']) ?></td>
-          <td><a href="?delete=<?= $v['id'] ?>" onclick="return confirm('Eintrag wirklich löschen?')">🗑️</a></td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+      <div class="input-control">
+        <label for="menge">Menge</label>
+        <input id="menge" class="input-field" type="number" name="menge" min="1" placeholder="z. B. 10" required>
+      </div>
 
-  <div class="back-wrap" style="margin-top:40px;">
-    <a href="dashboard.php" class="btn btn-ghost">← Zurück zum Dashboard</a>
-  </div>
+      <div class="input-control">
+        <span class="input-label">Aktion</span>
+        <div class="inventory-radio-group">
+          <label class="inventory-radio" for="aktion-add">
+            <input id="aktion-add" type="radio" name="aktion" value="hinzugefügt" checked>
+            <span>Hinzufügen</span>
+          </label>
+          <label class="inventory-radio" for="aktion-remove">
+            <input id="aktion-remove" type="radio" name="aktion" value="entnommen">
+            <span>Entnehmen</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="inventory-submit">Änderung speichern</button>
+        <a class="inventory-submit inventory-submit--ghost" href="lageruebersicht.php">Gesamtübersicht öffnen</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Aktueller Bestand</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Produkt</th><th>Bestand</th></tr>
+        </thead>
+        <tbody>
+          <?php foreach ($produkte as $p): ?>
+            <tr>
+              <td><?= htmlspecialchars($p['produkt']) ?></td>
+              <td class="<?= ((int)$p['bestand'] < $lowStockThreshold) ? 'low-stock' : '' ?>">
+                <?= number_format($p['bestand'], 0, ',', '.') ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Historie</h2>
+    <div class="table-wrap">
+      <table class="data-table inventory-history-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Produkt</th>
+            <th>Menge</th>
+            <th>Aktion</th>
+            <th>Mitarbeiter</th>
+            <th>Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($verlauf as $v): ?>
+            <?php $isAdd = $v['aktion'] === 'hinzugefügt'; ?>
+            <tr>
+              <td><?= date('d.m.Y H:i', strtotime($v['datum'])) ?></td>
+              <td><?= htmlspecialchars($v['produkt']) ?></td>
+              <td><?= number_format($v['menge'], 0, ',', '.') ?></td>
+              <td>
+                <span class="badge <?= $isAdd ? 'glow' : 'negative' ?>">
+                  <?= $isAdd ? 'Hinzugefügt' : 'Entnommen' ?>
+                </span>
+              </td>
+              <td><?= htmlspecialchars($v['mitarbeiter']) ?></td>
+              <td>
+                <a class="inventory-submit inventory-submit--ghost inventory-submit--small" href="?delete=<?= $v['id'] ?>"
+                   onclick="return confirm('Eintrag wirklich löschen?')">🗑️</a>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Schnellzugriff</h2>
+    <div class="form-actions" style="justify-content:flex-start;">
+      <a href="dashboard.php" class="button-secondary">← Zurück zum Dashboard</a>
+      <a href="lageruebersicht.php" class="button-secondary">📦 Lagerübersicht</a>
+    </div>
+  </section>
 </main>
 
 <footer id="main-footer">

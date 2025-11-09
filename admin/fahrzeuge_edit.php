@@ -5,7 +5,6 @@ require_once '../includes/db.php';
 // Zentrale Admin-Zugriffskontrolle
 require_once '../includes/admin_access.php';
 
-
 /* === LÖSCHEN === */
 if (isset($_GET['delete'])) {
   $id = intval($_GET['delete']);
@@ -20,10 +19,8 @@ $fahrer_liste = $fahrer_stmt->fetchAll(PDO::FETCH_COLUMN);
 
 /* === HINZUFÜGEN === */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
-  $stmt = $pdo->prepare("
-    INSERT INTO fahrzeuge (fahrzeug_typ, kennzeichen, fahrer, tankstand, beschaedigungen, pruefdatum)
-    VALUES (?, ?, ?, ?, ?, ?)
-  ");
+  $stmt = $pdo->prepare("INSERT INTO fahrzeuge (fahrzeug_typ, kennzeichen, fahrer, tankstand, beschaedigungen, pruefdatum)
+                         VALUES (?, ?, ?, ?, ?, ?)");
   $stmt->execute([
     $_POST['fahrzeug_typ'],
     $_POST['kennzeichen'],
@@ -38,11 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
 
 /* === BEARBEITEN === */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
-  $stmt = $pdo->prepare("
-    UPDATE fahrzeuge
-    SET fahrzeug_typ=?, kennzeichen=?, fahrer=?, tankstand=?, beschaedigungen=?, pruefdatum=?
-    WHERE id=?
-  ");
+  $stmt = $pdo->prepare("UPDATE fahrzeuge
+                          SET fahrzeug_typ=?, kennzeichen=?, fahrer=?, tankstand=?, beschaedigungen=?, pruefdatum=?
+                          WHERE id=?");
   $stmt->execute([
     $_POST['fahrzeug_typ'],
     $_POST['kennzeichen'],
@@ -57,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
 }
 
 /* === LADEN === */
-$fahrzeuge = $pdo->query("SELECT * FROM fahrzeuge ORDER BY id ASC")->fetchAll();
+$fahrzeuge = $pdo->query("SELECT * FROM fahrzeuge ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 /* === Fahrzeugtypen === */
 $fahrzeug_typen = ['GBBISONHF', 'Jugular', 'BRASTX'];
@@ -68,287 +63,333 @@ $kennzeichen_map = [
   'Jugular'   => ["UZL 323","XIY 594","IKV 547","AXX 743","UDZ 359","KBU 339","ITT 343","MLL 139","EVY 813"],
   'BRASTX'    => ["XVX 271","KJS 019","JAC 153","ISX 602","LPU 767"]
 ];
+
+/* === Kennzahlen === */
+$anzahlFahrzeuge = count($fahrzeuge);
+$anzahlFahrer = count($fahrer_liste);
+$wartungFällig = 0;
+$durchschnittTank = 0;
+
+foreach ($fahrzeuge as $fz) {
+  $tank = preg_replace('/[^0-9.]/', '', (string)$fz['tankstand']);
+  if ($tank !== '') {
+    $durchschnittTank += (float)$tank;
+  }
+  if (!empty($fz['pruefdatum'])) {
+    $diff = (strtotime($fz['pruefdatum']) - time()) / (60 * 60 * 24);
+    if ($diff <= 30) {
+      $wartungFällig++;
+    }
+  }
+}
+$durchschnittTank = $anzahlFahrzeuge ? $durchschnittTank / $anzahlFahrzeuge : 0;
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fahrzeuge verwalten | Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+<title>🚗 Fahrzeuge verwalten | Admin</title>
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../styles.css">
-
 <style>
-main {
-  max-width: 1200px;
-  margin: 120px auto 80px;
-  padding: 0 40px;
+.inventory-page.admin-inventory-page {
+  gap: 32px;
 }
-.card.glass { margin-bottom: 40px; }
-.fahrzeug-form {
+
+.vehicle-form-grid {
   display: grid;
-  gap: 10px;
-  margin-top: 15px;
+  gap: 18px;
 }
-.fahrzeug-form input,
-.fahrzeug-form textarea,
-.fahrzeug-form select {
-  background: rgba(20,20,20,0.9);
-  border: 1px solid rgba(57,255,20,0.4);
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: #fff;
-  font-family: inherit;
+
+@media (min-width: 900px) {
+  .vehicle-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.fahrzeug-form select option {
-  background: #111;
-  color: #fff;
-}
-.fahrzeug-form input:focus,
-.fahrzeug-form textarea:focus,
-.fahrzeug-form select:focus {
-  outline: none;
-  border-color: #76ff65;
-  box-shadow: 0 0 12px rgba(57,255,20,0.6)
-}
-.fahrzeug-tabelle {
+
+.vehicle-table select,
+.vehicle-table textarea,
+.vehicle-table input[type="text"],
+.vehicle-table input[type="date"] {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-.fahrzeug-tabelle th, .fahrzeug-tabelle td {
-  padding: 10px;
-  border-bottom: 1px solid rgba(57,255,20,0.3);
-}
-.fahrzeug-tabelle th {
-  background: rgba(57,255,20,0.1);
-  color: #76ff65;
-}
-.fahrzeug-tabelle tr:hover {
-  background: rgba(57,255,20,0.08);
-}
-.fahrzeug-tabelle input,
-.fahrzeug-tabelle textarea,
-.fahrzeug-tabelle select {
-  width: 100%;
-  background: rgba(25,25,25,0.9);
-  color: #fff;
-  border: 1px solid rgba(57,255,20,0.3);
-  border-radius: 6px;
-  padding: 5px 8px;
-  font-family: inherit;
-}
-.fahrzeug-tabelle select option {
-  background: #111;
-  color: #fff;
-}
-.fahrzeug-tabelle button {
-  padding: 6px 10px;
-  font-size: 0.9rem;
-}
-.pruef-warnung {
-  color: #39ff14;
-  font-weight: bold;
-  text-shadow: 0 0 8px rgba(57,255,20,.7);
-  font-size: 0.85rem;
-  margin-top: 3px;
-}
-.back-btn {
-  display: inline-block;
-  margin-top: 40px;
-  text-decoration: none;
-  border: 2px solid #39ff14;
-  color: #39ff14;
-  padding: 12px 28px;
+  background: rgba(10, 12, 13, 0.9);
+  border: 1px solid rgba(57, 255, 20, 0.25);
   border-radius: 10px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 8px rgba(57,255,20,0.4);
-}
-.back-btn:hover {
-  background: linear-gradient(90deg, #39ff14, #76ff65);
+  padding: 10px 12px;
   color: #fff;
-  box-shadow: 0 0 25px rgba(57,255,20,.9), 0 0 45px rgba(57,255,20,.6);
-  transform: scale(1.05);
+  font: inherit;
 }
-.back-container { text-align: center; }
+
+.vehicle-table textarea {
+  resize: vertical;
+  min-height: 48px;
+}
+
+.vehicle-table td {
+  vertical-align: top;
+}
+
+.vehicle-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pruef-warnung {
+  margin-top: 6px;
+  color: #ffb4d4;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
 </style>
 </head>
 <body>
 <?php include '../header.php'; ?>
 
-<main>
-  <section class="cards-section">
-    <h2 class="section-title">🚗 Fahrzeugverwaltung</h2>
+<main class="inventory-page admin-inventory-page">
+  <header class="inventory-header">
+    <h1 class="inventory-title">🚗 Fahrzeugverwaltung</h1>
+    <p class="inventory-description">
+      Pflege Dienstfahrzeuge, hinterlege Fahrtenbuch-Informationen und plane Prüfungen – alles an einem Ort.
+    </p>
+    <p class="inventory-info">
+      Aktiver Fuhrpark: <?= $anzahlFahrzeuge ?> Fahrzeuge · verfügbare Fahrer:innen: <?= $anzahlFahrer ?>
+    </p>
 
-    <!-- Neues Fahrzeug hinzufügen -->
-    <div class="card glass">
-      <h3>Neues Fahrzeug hinzufügen</h3>
-      <form method="post" class="fahrzeug-form" id="addForm">
-        <input type="hidden" name="add" value="1">
-
-        <label>Fahrzeugtyp:</label>
-        <select name="fahrzeug_typ" id="fahrzeug_typ_add" required>
-          <option value="">– bitte wählen –</option>
-          <?php foreach ($fahrzeug_typen as $typ): ?>
-            <option value="<?= $typ ?>"><?= $typ ?></option>
-          <?php endforeach; ?>
-        </select>
-
-        <label>Kennzeichen:</label>
-        <select name="kennzeichen" id="kennzeichen_add" required>
-          <option value="">– bitte Typ wählen –</option>
-        </select>
-
-        <label>Fahrer:</label>
-        <select name="fahrer" required>
-          <option value="">– bitte Fahrer wählen –</option>
-          <?php foreach ($fahrer_liste as $fahrer): ?>
-            <option value="<?= htmlspecialchars($fahrer) ?>"><?= htmlspecialchars($fahrer) ?></option>
-          <?php endforeach; ?>
-        </select>
-
-        <label>Tankstand:</label>
-        <input type="text" name="tankstand">
-
-        <label>Beschädigungen:</label>
-        <textarea name="beschaedigungen" rows="3"></textarea>
-
-        <label>Prüfdatum:</label>
-        <input type="date" name="pruefdatum">
-
-        <button type="submit" class="btn btn-primary">+ Fahrzeug hinzufügen</button>
-      </form>
+    <div class="inventory-metrics">
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Fahrzeuge</span>
+        <span class="inventory-metric__value"><?= number_format($anzahlFahrzeuge, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">in der Datenbank</span>
+      </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Ø Tankstand</span>
+        <span class="inventory-metric__value"><?= number_format($durchschnittTank, 1, ',', '.') ?>%</span>
+        <span class="inventory-metric__hint">auf Basis eingetragener Werte</span>
+      </article>
+      <article class="inventory-metric <?= $wartungFällig ? 'inventory-metric--alert' : '' ?>">
+        <span class="inventory-metric__label">Prüfung fällig (≤30 Tage)</span>
+        <span class="inventory-metric__value"><?= number_format($wartungFällig, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint">Bitte zeitnah planen</span>
+      </article>
     </div>
+  </header>
 
-    <!-- Fahrzeugliste -->
-    <div class="card glass">
-      <h3>Bestehende Fahrzeuge</h3>
-      <?php if ($fahrzeuge): ?>
-        <table class="fahrzeug-tabelle">
+  <section class="inventory-section">
+    <h2>Neues Fahrzeug eintragen</h2>
+    <p class="inventory-section__intro">
+      Hinterlege neue Fahrzeuge inklusive Fahrer:in und Prüftermin.
+    </p>
+
+    <form method="post" class="inventory-form">
+      <input type="hidden" name="add" value="1">
+
+      <div class="vehicle-form-grid">
+        <div class="input-control">
+          <label for="fahrzeug_typ_add">Fahrzeugtyp</label>
+          <select id="fahrzeug_typ_add" name="fahrzeug_typ" class="inventory-select" required>
+            <option value="">– bitte wählen –</option>
+            <?php foreach ($fahrzeug_typen as $typ): ?>
+              <option value="<?= $typ ?>"><?= $typ ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="input-control">
+          <label for="kennzeichen_add">Kennzeichen</label>
+          <select id="kennzeichen_add" name="kennzeichen" class="inventory-select" required>
+            <option value="">– bitte Typ wählen –</option>
+          </select>
+        </div>
+
+        <div class="input-control">
+          <label for="fahrer_add">Fahrer:in</label>
+          <select id="fahrer_add" name="fahrer" class="inventory-select" required>
+            <option value="">– bitte Fahrer wählen –</option>
+            <?php foreach ($fahrer_liste as $fahrer): ?>
+              <option value="<?= htmlspecialchars($fahrer) ?>"><?= htmlspecialchars($fahrer) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="input-control">
+          <label for="tankstand_add">Tankstand</label>
+          <input id="tankstand_add" class="input-field" type="text" name="tankstand" placeholder="z. B. 75%">
+        </div>
+
+        <div class="input-control">
+          <label for="beschaedigungen_add">Beschädigungen / Hinweise</label>
+          <textarea id="beschaedigungen_add" name="beschaedigungen" rows="3" placeholder="z. B. Kratzer hinten links"></textarea>
+        </div>
+
+        <div class="input-control">
+          <label for="pruefdatum_add">Nächste Prüfung</label>
+          <input id="pruefdatum_add" class="input-field" type="date" name="pruefdatum">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="inventory-submit">+ Fahrzeug hinzufügen</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Fahrzeuge im Überblick</h2>
+    <?php if ($fahrzeuge): ?>
+      <div class="table-wrap">
+        <table class="data-table vehicle-table">
           <thead>
             <tr>
               <th>ID</th>
               <th>Typ</th>
               <th>Kennzeichen</th>
-              <th>Fahrer</th>
-              <th>Tank</th>
-              <th>Schäden</th>
+              <th>Fahrer:in</th>
+              <th>Tankstand</th>
+              <th>Schäden / Hinweise</th>
               <th>Prüfdatum</th>
               <th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
-          <?php foreach ($fahrzeuge as $fz): 
-            $warnung = false;
-            if ($fz['pruefdatum']) {
-              $diff = (strtotime($fz['pruefdatum']) - time()) / (60*60*24);
-              if ($diff <= 30) $warnung = true;
-            }
-          ?>
-            <tr>
-              <form method="post" class="fahrzeug-edit-form">
-                <td><?= $fz['id'] ?></td>
-                <td>
-                  <select name="fahrzeug_typ" class="fahrzeug_typ_edit" required>
-                    <?php foreach ($fahrzeug_typen as $typ): ?>
-                      <option value="<?= $typ ?>" <?= $fz['fahrzeug_typ'] === $typ ? 'selected' : '' ?>><?= $typ ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </td>
-                <td>
-                  <select name="kennzeichen" class="kennzeichen_edit" required>
-                    <?php
-                    $aktTyp = $fz['fahrzeug_typ'];
-                    foreach ($kennzeichen_map[$aktTyp] as $kennz):
-                    ?>
-                      <option value="<?= $kennz ?>" <?= $fz['kennzeichen'] === $kennz ? 'selected' : '' ?>>
-                        <?= $kennz ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
-                </td>
-                <td>
-                  <select name="fahrer" required>
-                    <option value="">– bitte wählen –</option>
-                    <?php foreach ($fahrer_liste as $fahrer): ?>
-                      <option value="<?= htmlspecialchars($fahrer) ?>" <?= ($fz['fahrer'] === $fahrer) ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($fahrer) ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
-                </td>
-                <td><input type="text" name="tankstand" value="<?= htmlspecialchars($fz['tankstand']) ?>"></td>
-                <td><textarea name="beschaedigungen" rows="2"><?= htmlspecialchars($fz['beschaedigungen']) ?></textarea></td>
-                <td>
-                  <input type="date" name="pruefdatum" value="<?= htmlspecialchars($fz['pruefdatum']) ?>">
-                  <?php if ($warnung): ?><div class="pruef-warnung">⚠ bald prüfen!</div><?php endif; ?>
-                </td>
-                <td>
-                  <input type="hidden" name="edit_id" value="<?= $fz['id'] ?>">
-                  <button type="submit" class="btn btn-primary">💾</button>
-                  <a href="?delete=<?= $fz['id'] ?>" class="btn btn-ghost" onclick="return confirm('Fahrzeug wirklich löschen?')">🗑️</a>
-                </td>
-              </form>
-            </tr>
-          <?php endforeach; ?>
+            <?php foreach ($fahrzeuge as $fz): ?>
+              <?php
+                $warnung = false;
+                if (!empty($fz['pruefdatum'])) {
+                  $diff = (strtotime($fz['pruefdatum']) - time()) / (60*60*24);
+                  $warnung = $diff <= 30;
+                }
+              ?>
+              <tr>
+                <form method="post" class="fahrzeug-edit-form">
+                  <td><?= $fz['id'] ?></td>
+                  <td>
+                    <select name="fahrzeug_typ" class="fahrzeug_typ_edit" required>
+                      <?php foreach ($fahrzeug_typen as $typ): ?>
+                        <option value="<?= $typ ?>" <?= $fz['fahrzeug_typ'] === $typ ? 'selected' : '' ?>><?= $typ ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </td>
+                  <td>
+                    <select name="kennzeichen" class="kennzeichen_edit" required>
+                      <?php
+                      $aktTyp = $fz['fahrzeug_typ'];
+                      foreach ($kennzeichen_map[$aktTyp] as $kennz):
+                      ?>
+                        <option value="<?= $kennz ?>" <?= $fz['kennzeichen'] === $kennz ? 'selected' : '' ?>><?= $kennz ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </td>
+                  <td>
+                    <select name="fahrer" required>
+                      <option value="">– bitte wählen –</option>
+                      <?php foreach ($fahrer_liste as $fahrer): ?>
+                        <option value="<?= htmlspecialchars($fahrer) ?>" <?= ($fz['fahrer'] === $fahrer) ? 'selected' : '' ?>><?= htmlspecialchars($fahrer) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </td>
+                  <td><input type="text" name="tankstand" value="<?= htmlspecialchars($fz['tankstand']) ?>"></td>
+                  <td><textarea name="beschaedigungen" rows="2"><?= htmlspecialchars($fz['beschaedigungen']) ?></textarea></td>
+                  <td>
+                    <input type="date" name="pruefdatum" value="<?= htmlspecialchars($fz['pruefdatum']) ?>">
+                    <?php if ($warnung): ?>
+                      <div class="pruef-warnung">⚠ Prüfung fällig!</div>
+                    <?php endif; ?>
+                  </td>
+                  <td class="vehicle-actions">
+                    <input type="hidden" name="edit_id" value="<?= $fz['id'] ?>">
+                    <button type="submit" class="inventory-submit inventory-submit--small">💾 Speichern</button>
+                    <a href="?delete=<?= $fz['id'] ?>" class="inventory-submit inventory-submit--ghost inventory-submit--small"
+                       onclick="return confirm('Fahrzeug wirklich löschen?')">🗑️</a>
+                  </td>
+                </form>
+              </tr>
+            <?php endforeach; ?>
           </tbody>
         </table>
-      <?php else: ?>
-        <p>Keine Fahrzeuge vorhanden.</p>
-      <?php endif; ?>
-    </div>
+      </div>
+    <?php else: ?>
+      <p class="inventory-section__intro">Derzeit sind keine Fahrzeuge eingetragen.</p>
+    <?php endif; ?>
+  </section>
 
-    <div class="back-container">
-      <a href="dashboard.php" class="back-btn">← Zurück zum Dashboard</a>
+  <section class="inventory-section">
+    <h2>Schnellzugriff</h2>
+    <div class="form-actions" style="justify-content:flex-start;">
+      <a href="dashboard.php" class="button-secondary">← Zurück zum Dashboard</a>
     </div>
   </section>
 </main>
-
-<footer id="main-footer">
-  <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Adminbereich</p>
-</footer>
-
-<script>
-const kennzeichenMap = <?= json_encode($kennzeichen_map) ?>;
-document.getElementById('fahrzeug_typ_add').addEventListener('change', function() {
-  const selectedType = this.value;
-  const kennzSelect = document.getElementById('kennzeichen_add');
-  kennzSelect.innerHTML = '<option value="">– bitte wählen –</option>';
-  if (kennzeichenMap[selectedType]) {
-    kennzeichenMap[selectedType].forEach(k => {
-      const opt = document.createElement('option');
-      opt.value = k;
-      opt.textContent = k;
-      kennzSelect.appendChild(opt);
-    });
-  }
-});
-document.querySelectorAll('.fahrzeug-edit-form').forEach(form => {
-  const typSelect = form.querySelector('.fahrzeug_typ_edit');
-  const kennzSelect = form.querySelector('.kennzeichen_edit');
-  typSelect.addEventListener('change', () => {
-    const selectedType = typSelect.value;
-    kennzSelect.innerHTML = '';
-    if (kennzeichenMap[selectedType]) {
-      kennzeichenMap[selectedType].forEach(k => {
-        const opt = document.createElement('option');
-        opt.value = k;
-        opt.textContent = k;
-        kennzSelect.appendChild(opt);
-      });
-    }
-  });
-});
-</script>
 
 <footer id="main-footer">
   <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
   <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
 </footer>
 
+<script>
+const kennzeichenMap = <?= json_encode($kennzeichen_map) ?>;
+const fahrzeugeData = <?= json_encode($fahrzeuge) ?>;
+const addTypeSelect = document.getElementById('fahrzeug_typ_add');
+const addKennzSelect = document.getElementById('kennzeichen_add');
 
+addTypeSelect.addEventListener('change', () => {
+  const selectedType = addTypeSelect.value;
+  addKennzSelect.innerHTML = '<option value="">– bitte wählen –</option>';
+  if (kennzeichenMap[selectedType]) {
+    kennzeichenMap[selectedType].forEach(k => {
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = k;
+      addKennzSelect.appendChild(opt);
+    });
+  }
+});
+
+document.querySelectorAll('.fahrzeug-edit-form').forEach(form => {
+  const typSelect = form.querySelector('.fahrzeug_typ_edit');
+  const kennzSelect = form.querySelector('.kennzeichen_edit');
+  const fahrzeugId = form.querySelector('input[name="edit_id"]').value;
+
+  const fillKennzeichen = (selectedType) => {
+    const currentVehicle = fahrzeugeData.find(f => f.id == fahrzeugId);
+    kennzSelect.innerHTML = '';
+    if (kennzeichenMap[selectedType]) {
+      kennzeichenMap[selectedType].forEach((k, index) => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        if (currentVehicle && currentVehicle.fahrzeug_typ === selectedType && currentVehicle.kennzeichen === k) {
+          opt.selected = true;
+        } else if ((!currentVehicle || currentVehicle.fahrzeug_typ !== selectedType) && index === 0) {
+          opt.selected = true;
+        }
+        kennzSelect.appendChild(opt);
+      });
+    }
+  };
+
+  const updateVehicleRecord = () => {
+    const record = fahrzeugeData.find(f => f.id == fahrzeugId);
+    if (record) {
+      record.fahrzeug_typ = typSelect.value;
+      record.kennzeichen = kennzSelect.value;
+    }
+  };
+
+  typSelect.addEventListener('change', () => {
+    fillKennzeichen(typSelect.value);
+    updateVehicleRecord();
+  });
+
+  kennzSelect.addEventListener('change', updateVehicleRecord);
+
+  updateVehicleRecord();
+
+  // Falls bereits ein Typ vorausgewählt ist, behalten wir die initiale Option.
+});
+</script>
 <script src="../script.js"></script>
 </body>
 </html>
