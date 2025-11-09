@@ -225,11 +225,11 @@ function setPanelVisibility(panel, visible) {
   if (!panel) return;
   if (visible) {
     panel.classList.add('is-active');
-    panel.removeAttribute('hidden');
+    panel.hidden = false;
     panel.setAttribute('aria-hidden', 'false');
   } else {
     panel.classList.remove('is-active');
-    panel.setAttribute('hidden', '');
+    panel.hidden = true;
     panel.setAttribute('aria-hidden', 'true');
   }
 }
@@ -247,31 +247,36 @@ const adminPanels = Array.from(document.querySelectorAll('.pricing-admin-panel')
 
 function activateAdminTab(targetId, { updateHash = true } = {}) {
   if (!adminTabs.length || !adminPanels.length) return;
-  let targetPanel = adminPanels.find((panel) => panel.id === targetId);
-  if (!targetPanel) {
-    targetPanel = adminPanels[0];
-    targetId = targetPanel ? targetPanel.id : null;
+
+  let targetTab = adminTabs.find((tab) => tab.dataset.tab === targetId) || null;
+  if (!targetTab && adminTabs.length) {
+    targetTab = adminTabs.find((tab) => tab.classList.contains('is-active')) || adminTabs[0];
+    targetId = targetTab ? targetTab.dataset.tab : targetId;
   }
+
+  const targetPanel = adminPanels.find((panel) => panel.id === targetId) || adminPanels[0];
   if (!targetPanel) return;
+  const finalTargetId = targetPanel.id;
 
   adminTabs.forEach((tab) => {
-    const isActive = tab.dataset.tab === targetId;
+    const isActive = tab === targetTab || tab.dataset.tab === finalTargetId;
     tab.classList.toggle('is-active', isActive);
     tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
     tab.setAttribute('tabindex', isActive ? '0' : '-1');
   });
 
   adminPanels.forEach((panel) => {
-    setPanelVisibility(panel, panel === targetPanel);
-    if (panel === targetPanel) {
+    const isPanelActive = panel.id === finalTargetId;
+    setPanelVisibility(panel, isPanelActive);
+    if (isPanelActive) {
       panel.removeAttribute('tabindex');
     } else {
       panel.setAttribute('tabindex', '-1');
     }
   });
 
-  if (updateHash && targetId && typeof history.replaceState === 'function') {
-    const newHash = `#${targetId}`;
+  if (updateHash && finalTargetId && typeof history.replaceState === 'function') {
+    const newHash = `#${finalTargetId}`;
     if (window.location.hash !== newHash) {
       history.replaceState(null, '', newHash);
     }
