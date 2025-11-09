@@ -2900,13 +2900,17 @@ gap: 12px;
   display: none;
 }
 
+.pricing-admin-panel[hidden] {
+  display: none !important;
+}
+
 .pricing-admin-panel.is-active {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.pricing-admin-panel:target {
+.pricing-admin-panel:target:not([hidden]) {
   display: flex;
   flex-direction: column;
   gap: 24px;
