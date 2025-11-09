@@ -34,19 +34,68 @@ if (isset($_GET['delete'])) {
 
 // 🔹 Wochenabschluss
 if (isset($_POST['archivieren'])) {
-  $montag = date('Y-m-d', strtotime('monday last week'));
-  $sonntag = date('Y-m-d', strtotime('sunday last week'));
-  $woche = date('W', strtotime('last week'));
+  try {
+    $pdo->beginTransaction();
 
-  $kosten = $pdo->query("SELECT * FROM kuehlschrank_wochenkosten WHERE woche_start = '$montag'")->fetchAll(PDO::FETCH_ASSOC);
-  foreach ($kosten as $k) {
-    $pdo->prepare("INSERT INTO kuehlschrank_archiv (mitarbeiter, gesamt_kosten, woche, archiviert_am)" .
-                  " VALUES (?, ?, ?, NOW())")
-        ->execute([$k['mitarbeiter'], $k['gesamt_kosten'], $woche]);
+    $wocheMeta = $pdo->query(
+      "SELECT woche_start, woche_ende FROM kuehlschrank_wochenkosten ORDER BY woche_start DESC LIMIT 1"
+    )->fetch(PDO::FETCH_ASSOC);
+
+    if (!$wocheMeta) {
+      $pdo->rollBack();
+      header("Location: kuehlschrank_edit.php?archiv=leer");
+      exit;
+    }
+
+    $wocheStart = $wocheMeta['woche_start'];
+    $wocheEnde = $wocheMeta['woche_ende'] ?? null;
+
+    $kostenStmt = $pdo->prepare(
+      "SELECT mitarbeiter, gesamt_kosten FROM kuehlschrank_wochenkosten WHERE woche_start = ?"
+    );
+    $kostenStmt->execute([$wocheStart]);
+    $kosten = $kostenStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!$kosten) {
+      $pdo->rollBack();
+      header("Location: kuehlschrank_edit.php?archiv=leer");
+      exit;
+    }
+
+    $kwNummer = (int)date('W', strtotime($wocheStart));
+    $kwWert = sprintf('%02d', $kwNummer);
+    $startFormatted = date('d.m.', strtotime($wocheStart));
+    $wocheEnde = $wocheEnde ?: date('Y-m-d', strtotime($wocheStart . ' +6 days'));
+    $endFormatted = date('d.m.', strtotime($wocheEnde));
+    $wocheLabel = sprintf('KW %s (%s – %s)', $kwWert, $startFormatted, $endFormatted);
+
+    $insertStmt = $pdo->prepare(
+      "INSERT INTO kuehlschrank_archiv (mitarbeiter, gesamt_kosten, woche, archiviert_am) VALUES (?, ?, ?, NOW())"
+    );
+
+    foreach ($kosten as $k) {
+      $insertStmt->execute([$k['mitarbeiter'], $k['gesamt_kosten'], $kwWert]);
+    }
+
+    $deleteStmt = $pdo->prepare("DELETE FROM kuehlschrank_wochenkosten WHERE woche_start = ?");
+    $deleteStmt->execute([$wocheStart]);
+
+    $pdo->commit();
+
+    $redirectParams = ['done' => 1];
+    if ($wocheLabel) {
+      $redirectParams['woche_label'] = $wocheLabel;
+    }
+
+    header('Location: kuehlschrank_edit.php?' . http_build_query($redirectParams));
+    exit;
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+      $pdo->rollBack();
+    }
+    header("Location: kuehlschrank_edit.php?archiv=fehler");
+    exit;
   }
-  $pdo->prepare("DELETE FROM kuehlschrank_wochenkosten WHERE woche_start = ?")->execute([$montag]);
-  header("Location: kuehlschrank_edit.php?done=1");
-  exit;
 }
 
 /* === Daten laden === */
@@ -127,7 +176,25 @@ $letzteAktualisierung = $verlauf[0]['datum'] ?? null;
     <section class="inventory-section">
       <h2>Wochenabschluss</h2>
       <p class="inventory-section__intro" style="color:#86ffb5;">
-        ✅ Wochenabschluss erfolgreich archiviert.
+        ✅ Wochenabschluss erfolgreich archiviert<?php if (isset($_GET['woche_label'])): ?> – <?= htmlspecialchars($_GET['woche_label']) ?><?php endif; ?>.
+      </p>
+    </section>
+  <?php endif; ?>
+
+  <?php if (isset($_GET['archiv']) && $_GET['archiv'] === 'leer'): ?>
+    <section class="inventory-section">
+      <h2>Wochenabschluss</h2>
+      <p class="inventory-section__intro" style="color:#ff9a9a;">
+        ⚠️ Keine offenen Wochenkosten gefunden – es wurde nichts archiviert.
+      </p>
+    </section>
+  <?php endif; ?>
+
+  <?php if (isset($_GET['archiv']) && $_GET['archiv'] === 'fehler'): ?>
+    <section class="inventory-section">
+      <h2>Wochenabschluss</h2>
+      <p class="inventory-section__intro" style="color:#ff9a9a;">
+        ❌ Beim Archivieren ist ein Fehler aufgetreten. Bitte erneut versuchen.
       </p>
     </section>
   <?php endif; ?>
