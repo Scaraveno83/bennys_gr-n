@@ -187,7 +187,7 @@ $userRole   = $_SESSION['user_role'] ?? '';
                 <p class="comment-login-hint">Nur eingeloggte Benutzer können hier kommentieren.</p>
               <?php endif; ?>
             </div>
-          </div>
+          </article>
         <?php endforeach; ?>
       </div>
       <div class="section-footer">
@@ -206,7 +206,7 @@ $userRole   = $_SESSION['user_role'] ?? '';
         <p><?= nl2br(htmlspecialchars($about['text'] ?? 'Hier steht bald mehr über Benny’s Werkstatt...')) ?></p>
       </div>
     </div>
-  <</section>
+  </section>
 
   <!-- SERVICES -->
   <section id="services" class="cards-section surface-panel">
