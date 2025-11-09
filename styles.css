@@ -1016,14 +1016,14 @@ main form textarea:focus {
   min-height: 100vh;
 }
 
-.gallery-main {
-  flex: 1;
+.gallery-page {
+  gap: 32px;
 }
 
 .gallery-hero {
-  padding: 140px 20px 80px;
+  padding: clamp(40px, 6vw, 60px);
   text-align: center;
-  background: radial-gradient(circle at center, rgba(57,255,20,0.12), transparent 70%);
+  background: radial-gradient(circle at center, rgba(57,255,20,0.18), transparent 70%);
 }
 
 .gallery-hero-inner {
@@ -1043,7 +1043,12 @@ main form textarea:focus {
 }
 
 .gallery-controls {
-  padding: 0 clamp(1.5rem, 3vw, 4rem) 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.gallery-controls .control-card {
+  width: min(720px, 100%);
 }
 
 .control-card {
@@ -1089,15 +1094,19 @@ main form textarea:focus {
   transform: translateY(-1px);
 }
 
-.media-grid {
+.gallery-grid-section {
+  padding: 0;
+}
+
+.gallery-grid-section .media-grid {
   position: relative;
-  padding: clamp(1rem, 5vw, 2.5rem);
+  padding: clamp(1rem, 4vw, 2rem);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 260px));
   gap: clamp(1rem, 2vw, 1.6rem);
   justify-content: center;
-  max-width: 1100px;
-  margin: 0 auto 80px;
+  width: 100%;
+  margin: 0;
 }
 
 .media-card {
@@ -1247,21 +1256,21 @@ main form textarea:focus {
 
 @media (max-width: 900px) {
   .gallery-hero {
-    padding: 120px 20px 60px;
+    padding: 100px 20px 50px;
   }
 
-  .gallery-controls {
-    padding: 0 20px 28px;
+  .gallery-controls .control-card {
+    padding: 20px;
   }
 
-  .media-grid {
+  .gallery-grid-section .media-grid {
     padding: 1.75rem;
     gap: 1.2rem;
   }
 }
 
 @media (max-width: 600px) {
-  .media-grid {
+  .gallery-grid-section .media-grid {
     padding: 1.5rem 1rem;
     gap: 1rem;
   }
@@ -2180,6 +2189,184 @@ main form textarea:focus {
 .inventory-section p {
   margin: 0;
   color: rgba(255, 255, 255, 0.72);
+}
+
+.inventory-alert {
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(57, 255, 20, 0.22);
+  background: rgba(10, 14, 16, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.08), 0 20px 36px rgba(0, 0, 0, 0.4);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.inventory-alert--success {
+  border-color: rgba(118, 255, 101, 0.55);
+  background: rgba(57, 255, 20, 0.16);
+  color: rgba(210, 255, 220, 0.95);
+  box-shadow: inset 0 0 0 1px rgba(118, 255, 101, 0.2), 0 22px 38px rgba(4, 20, 10, 0.55);
+}
+
+.inventory-alert--error {
+  border-color: rgba(255, 96, 96, 0.65);
+  background: rgba(60, 8, 14, 0.72);
+  color: #ffbaba;
+  box-shadow: inset 0 0 0 1px rgba(255, 128, 128, 0.2), 0 22px 38px rgba(40, 8, 10, 0.6);
+}
+
+.gallery-admin-page {
+  gap: 36px;
+}
+
+.gallery-admin-header .inventory-description {
+  max-width: 720px;
+}
+
+.gallery-admin-toggle .inventory-radio span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gallery-admin-toggle .inventory-radio span small {
+  font-size: 0.75rem;
+  color: rgba(255, 186, 186, 0.85);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.gallery-admin-panel {
+  display: none;
+}
+
+.gallery-admin-panel.is-active {
+  display: block;
+}
+
+.gallery-admin-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.gallery-admin-card {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(57, 255, 20, 0.22);
+  background: rgba(10, 14, 16, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.08), 0 24px 38px rgba(0, 0, 0, 0.35);
+}
+
+.gallery-admin-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.gallery-admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(57, 255, 20, 0.32);
+  background: rgba(57, 255, 20, 0.12);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  font-weight: 700;
+}
+
+.gallery-admin-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 96, 96, 0.6);
+  background: rgba(255, 96, 96, 0.12);
+  color: #ffbaba;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.gallery-admin-delete:hover,
+.gallery-admin-delete:focus-visible {
+  background: linear-gradient(120deg, rgba(255, 128, 128, 0.85), rgba(255, 96, 96, 0.75));
+  color: #2a0606;
+  box-shadow: 0 16px 26px rgba(255, 96, 96, 0.28);
+}
+
+.gallery-admin-preview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(5, 8, 6, 0.8);
+}
+
+.gallery-admin-preview iframe,
+.gallery-admin-preview video,
+.gallery-admin-preview img,
+.gallery-admin-preview .gallery-admin-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-admin-preview video {
+  background: #000;
+}
+
+.gallery-admin-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 18px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: repeating-linear-gradient(135deg, rgba(57, 255, 20, 0.12) 0, rgba(57, 255, 20, 0.12) 12px, rgba(57, 255, 20, 0.04) 12px, rgba(57, 255, 20, 0.04) 24px);
+}
+
+.gallery-admin-meta {
+  display: grid;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.95rem;
+}
+
+.gallery-admin-meta strong {
+  color: var(--accent-light);
+}
+
+.gallery-admin-meta__id {
+  margin: 0;
+  font-weight: 700;
+  color: var(--accent-light);
+}
+
+.gallery-admin-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.gallery-admin-actions .inventory-submit {
+  min-width: 220px;
 }
 
 /* ===== Messages ===== */

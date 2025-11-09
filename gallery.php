@@ -138,28 +138,31 @@ function escapeAttr(?string $value): string
 <body class="gallery-body">
 <?php include 'header.php'; ?>
 
-<main class="gallery-main">
-  <section class="gallery-hero">
+<main class="inventory-page gallery-page">
+  <section class="inventory-header gallery-hero">
     <div class="gallery-hero-inner">
       <h1>Galerie</h1>
       <p>Einblicke in Projekte, Fahrzeuge und Events – jetzt auch mit Video-Highlights.</p>
     </div>
   </section>
 
-  <section class="gallery-controls">
-    <div class="card glass control-card">
-      <span class="control-label">Anzeige:</span>
-      <div class="control-buttons">
-        <button type="button" class="filter-btn is-active" data-filter="all">Alles</button>
-        <button type="button" class="filter-btn" data-filter="image">Bilder</button>
-        <button type="button" class="filter-btn" data-filter="video">Videos</button>
+  <section class="inventory-section gallery-controls-section">
+    <div class="gallery-controls">
+      <div class="card glass control-card">
+        <span class="control-label">Anzeige:</span>
+        <div class="control-buttons">
+          <button type="button" class="filter-btn is-active" data-filter="all">Alles</button>
+          <button type="button" class="filter-btn" data-filter="image">Bilder</button>
+          <button type="button" class="filter-btn" data-filter="video">Videos</button>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="media-grid" id="galleryGrid">
+  <section class="inventory-section gallery-grid-section">
     <?php if (!empty($galleryItems)): ?>
-      <?php foreach ($galleryItems as $item): ?>
+      <div class="media-grid" id="galleryGrid">
+        <?php foreach ($galleryItems as $item): ?>
         <?php
           $mediaType = $hasMediaType ? ($item['media_type'] ?? 'image') : 'image';
           $mediaType = $mediaType === 'video' ? 'video' : 'image';
@@ -233,6 +236,7 @@ function escapeAttr(?string $value): string
           </figure>
         </article>
       <?php endforeach; ?>
+      </div>
     <?php else: ?>
       <div class="empty-state glass">
         <h2>Noch keine Medien vorhanden</h2>
