@@ -1575,7 +1575,7 @@ main form textarea:focus {
 
 .news-card__icon {
   width: clamp(52px, 8vw, 64px);
-  height: clamp(52px, 8vw, 64px);
+  height: clamp(50px 1vw, 64px);
   border-radius: 18px;
   display: inline-flex;
   align-items: center;
@@ -1624,7 +1624,7 @@ main form textarea:focus {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 16px;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid transparent;
   font-size: 0.75rem;
