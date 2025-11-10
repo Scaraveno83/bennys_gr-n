@@ -73,114 +73,213 @@ $isAdmin = (
 $adminErlaubteRollen = [
     'Geschäftsführung', 'Stv. Geschäftsleitung', 'Personalleitung'
 ];
+
+$currentPath = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+
+$navItems = [
+    [
+        'label' => 'Home',
+        'href' => $basePath . 'index.php',
+        'activePaths' => ['index.php'],
+    ],
+    [
+        'label' => 'Über uns',
+        'href' => $basePath . 'index.php#about',
+    ],
+    [
+        'label' => 'Leistungen',
+        'href' => $basePath . 'index.php#services',
+    ],
+    [
+        'label' => 'Galerie',
+        'href' => $basePath . 'gallery.php',
+        'activePaths' => ['gallery.php'],
+    ],
+    [
+        'label' => 'Mitarbeiter',
+        'href' => $basePath . 'mitarbeiter.php',
+        'activePaths' => ['mitarbeiter.php'],
+    ],
+    [
+        'label' => 'News',
+        'href' => $basePath . 'news_archiv.php',
+        'activePaths' => ['news_archiv.php'],
+    ],
+];
+
+if (!empty($_SESSION['user_id'])) {
+    $navItems[] = [
+        'label' => 'Forum',
+        'href' => $basePath . 'forum.php',
+        'activePaths' => ['forum.php', 'forum_room.php', 'forum_thread.php', 'forum_new_thread.php'],
+    ];
+}
+
+$showRestricted = !empty($_SESSION['user_role']) || (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true);
+
+if ($showRestricted) {
+    $navItems[] = [
+        'label' => 'Kalender',
+        'href' => $basePath . 'calendar/calendar.php',
+        'activePaths' => ['calendar.php'],
+    ];
+    $navItems[] = [
+        'label' => 'Preise',
+        'href' => $basePath . 'pricing_center.php',
+        'activePaths' => ['pricing_center.php'],
+    ];
+    $navItems[] = [
+        'label' => 'Fahrzeuge',
+        'href' => $basePath . 'fahrzeuge.php',
+        'activePaths' => ['fahrzeuge.php'],
+    ];
+    $navItems[] = [
+        'label' => 'Wochenaufgaben',
+        'href' => $basePath . 'wochenaufgaben.php',
+        'activePaths' => ['wochenaufgaben.php'],
+    ];
+    $navItems[] = [
+        'label' => 'Kühlschrank',
+        'href' => $basePath . 'kuehlschrank.php',
+        'activePaths' => ['kuehlschrank.php'],
+    ];
+
+    if ($isAdmin || ($userRang && in_array($userRang, $hauptlagerErlaubteRollen, true))) {
+        $navItems[] = [
+            'label' => 'Hauptlager',
+            'href' => $basePath . 'hauptlager.php',
+            'activePaths' => ['hauptlager.php'],
+        ];
+    }
+
+    if ($isAdmin || ($userRang && in_array($userRang, $azubiErlaubteRollen, true))) {
+        $navItems[] = [
+            'label' => 'Azubilager',
+            'href' => $basePath . 'azubilager.php',
+            'activePaths' => ['azubilager.php'],
+        ];
+    }
+
+    if ($isAdmin || ($userRang && in_array($userRang, $bueroErlaubteRollen, true))) {
+        $navItems[] = [
+            'label' => 'Bürolager',
+            'href' => $basePath . 'buerolager.php',
+            'activePaths' => ['buerolager.php'],
+        ];
+    }
+
+    if (!empty($_SESSION['user_id'])) {
+        $navItems[] = [
+            'label' => 'Nachrichten',
+            'href' => $basePath . 'admin/messages.php',
+            'activePaths' => ['messages.php'],
+            'badge' => $unreadMessages,
+        ];
+    }
+}
+
+if ($isAdmin || ($userRang && in_array($userRang, $adminErlaubteRollen, true))) {
+    $navItems[] = [
+        'label' => 'Admin',
+        'href' => $basePath . 'admin/dashboard.php',
+        'activePaths' => ['dashboard.php'],
+    ];
+    $navItems[] = [
+        'label' => 'News verwalten',
+        'href' => $basePath . 'admin/news_manage.php',
+        'activePaths' => ['news_manage.php'],
+    ];
+}
+
+if (!empty($_SESSION['user_id'])) {
+    $navItems[] = [
+        'label' => 'Profil',
+        'href' => $basePath . 'profile.php',
+        'activePaths' => ['profile.php', 'profile_edit.php'],
+    ];
+}
+
+if (!empty($_SESSION['user_role']) || (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true)) {
+    $navItems[] = [
+        'label' => 'Abmelden',
+        'href' => $basePath . 'admin/logout.php',
+        'variant' => 'action',
+    ];
+} else {
+    $navItems[] = [
+        'label' => 'Login',
+        'href' => $basePath . 'admin/login.php',
+        'variant' => 'action',
+    ];
+}
 ?>
 
 <header>
-  <div class="header-inner">
-    <!-- 🏁 Logo -->
+  <div class="header-top">
     <a href="<?= $basePath ?>index.php" class="brand">
       <img src="<?= $basePath ?>pics/header_logo.png" alt="Benny’s Original Motor Works" class="brand-banner">
     </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">
+      <span class="menu-toggle__icon" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+      <span class="menu-toggle__label">Menü</span>
+    </button>
+  </div>
 
-    <!-- 📋 Menü -->
-    <div class="menu-container">
-      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">
-        <span class="menu-toggle__ring" aria-hidden="true"></span>
-        <span class="menu-toggle__inner">
-          <span class="menu-toggle__icon" aria-hidden="true">
-            <span class="menu-toggle__bar"></span>
-            <span class="menu-toggle__bar"></span>
-            <span class="menu-toggle__bar"></span>
-          </span>
-          <span class="menu-toggle__text">
-            <span class="menu-toggle__text-primary">Menü</span>
-            <span class="menu-toggle__text-secondary">Navigation</span>
-          </span>
-        </span>
-      </button>
-      <nav class="dropdown" id="mainMenu">
-
-        <!-- 🏠 Allgemein -->
-        <span class="dropdown-category">🏠 Allgemein</span>
-        <a href="<?= $basePath ?>index.php">🏠Startseite</a>
-        <a href="<?= $basePath ?>index.php#about">🌐Über uns</a>
-        <a href="<?= $basePath ?>index.php#services">⚙️Leistungen</a>
-        <a href="<?= $basePath ?>index.php#team">🤜🤛Team</a>
-        <a href="<?= $basePath ?>gallery.php">🎬Galerie</a>
-        <a href="<?= $basePath ?>mitarbeiter.php">👨‍🔧 Mitarbeiter</a>
-        <a href="<?= $basePath ?>news_archiv.php">📰 News</a>
-        <?php if (!empty($_SESSION['user_id'])): ?><a href="<?= $basePath ?>forum.php">💬 Forum</a><?php endif; ?>
-        
-
-        <?php if (
-            !empty($_SESSION['user_role']) ||
-            (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true)
-        ): ?>
-
-          <!-- 🧰 Werkstatt -->
-          <span class="dropdown-category">🧰 Werkstatt</span>
-          <a href="<?= $basePath ?>fahrzeuge.php">🚗 Dienstfahrzeuge</a>
-          <a href="<?= $basePath ?>wochenaufgaben.php">📅 Wochenaufgaben</a>
-          <a href="<?= $basePath ?>kuehlschrank.php">🥪 Kühlschrank</a>
-
-          <!-- 🔧 Hauptlager -->
-          <?php if ($isAdmin || ($userRang && in_array($userRang, $hauptlagerErlaubteRollen))): ?>
-            <a href="<?= $basePath ?>hauptlager.php">🔧 Hauptlager</a>
-          <?php endif; ?>
-
-          <!-- 🪛 Azubilager -->
-          <?php if ($isAdmin || ($userRang && in_array($userRang, $azubiErlaubteRollen))): ?>
-            <a href="<?= $basePath ?>azubilager.php">🪛 Azubilager</a>
-          <?php endif; ?>
-
-          <!-- 📁 Bürolager -->
-          <?php if ($isAdmin || ($userRang && in_array($userRang, $bueroErlaubteRollen))): ?>
-            <a href="<?= $basePath ?>buerolager.php">📁 Bürolager</a>
-          <?php endif; ?>
-
-          <!-- 👥 Personal -->
-          <span class="dropdown-category">👥 Personal</span>
-          <a href="<?= $basePath ?>calendar/calendar.php">📆 Kalender</a>
-        <a href="<?= $basePath ?>pricing_center.php">💵 Preise & 📄✍️ Verträge</a>
-
-          <!-- 💬 Nachrichten -->
-          <a href="<?= $basePath ?>admin/messages.php">
-            📨 Nachrichten<?= $unreadMessages > 0 ? " <span class='msg-count'>{$unreadMessages}</span>" : "" ?>
-          </a>
-
-        <?php endif; ?>
-
-        <!-- 🛠️ Verwaltung -->
-        <?php if ($isAdmin || ($userRang && in_array($userRang, $adminErlaubteRollen))): ?>
-          <span class="dropdown-category">🛠️ Verwaltung</span>
-          <a href="<?= $basePath ?>admin/dashboard.php">⚙️ Admin-Dashboard</a>
-          <a href="<?= $basePath ?>admin/news_manage.php">📰 News verwalten</a>
-        <?php endif; ?>
-
-        <!-- 🔓 Login / Logout -->
-         <?php if (!empty($_SESSION['user_id'])): ?>
-          <a href="<?= $basePath ?>profile.php">👤 Mein Profil</a>
-         <?php endif; ?>
-
-        <span class="dropdown-category">🔐 Zugriff</span>
-        <?php if (
-            !empty($_SESSION['user_role']) ||
-            (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true)
-        ): ?>
-          <a href="<?= $basePath ?>admin/logout.php" style="color:#76ff65;">🚪 Abmelden</a>
-        <?php else: ?>
-          <a href="<?= $basePath ?>admin/login.php">🔑 Login</a>
-        <?php endif; ?>
-
-      </nav>
-    </div>
+    <div class="menu-bar">
+    <nav class="main-nav" id="mainMenu" aria-label="Hauptnavigation">
+      <ul class="nav-list">
+        <?php foreach ($navItems as $item):
+            $paths = $item['activePaths'] ?? [];
+            $isActive = in_array($currentPath, $paths, true);
+            $classes = ['nav-link'];
+            if ($isActive) {
+                $classes[] = 'is-active';
+            }
+            if (!empty($item['variant'])) {
+                $classes[] = 'nav-link--' . $item['variant'];
+            }
+        ?>
+          <li class="nav-item">
+            <a class="<?= implode(' ', $classes) ?>" href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>">
+              <span class="nav-label"><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>
+              <?php if (!empty($item['badge'])): ?>
+                <span class="msg-count"><?= (int) $item['badge'] ?></span>
+              <?php endif; ?>
+            </a>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    </nav>
   </div>
 </header>
 
-<!-- Nachrichten-Liveupdate (stört Menü nicht) -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  setInterval(() => {
+  const header = document.querySelector('header');
+  const toggle = header ? header.querySelector('.menu-toggle') : null;
+  const nav = header ? header.querySelector('.main-nav') : null;
+
+  if (header && toggle && nav) {
+    toggle.addEventListener('click', () => {
+      const isOpen = header.classList.toggle('menu-open');
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    nav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        if (header.classList.contains('menu-open')) {
+          header.classList.remove('menu-open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  }
+
+  const refreshMessages = () => {
     fetch('<?= $basePath ?>admin/check_unread_messages.php')
       .then(res => res.text())
       .then(count => {
@@ -188,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!link) return;
 
         let badge = link.querySelector('.msg-count');
-        const num = parseInt(count) || 0;
+        const num = parseInt(count, 10) || 0;
 
         if (num > 0) {
           if (!badge) {
@@ -202,7 +301,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(() => {});
-  }, 30000);
+  };
+
+  refreshMessages();
+  setInterval(refreshMessages, 30000);
 });
 </script>
 <?php include $_SERVER['DOCUMENT_ROOT'].'/bennys/chat/chat.php'; ?>
