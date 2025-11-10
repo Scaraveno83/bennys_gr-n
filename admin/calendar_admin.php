@@ -269,30 +269,12 @@ $calendarAreas = [
 }
 
 .calendar-admin-page__page-btn {
-  border: 1px solid rgba(57, 255, 20, 0.22);
   border-radius: 999px;
-  background: rgba(57, 255, 20, 0.08);
-  color: rgba(255, 255, 255, 0.78);
   padding: 8px 16px;
   cursor: pointer;
   font-weight: 600;
   letter-spacing: 0.2px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-}
-
-.calendar-admin-page__page-btn:hover,
-.calendar-admin-page__page-btn:focus-visible {
-  transform: translateY(-1px);
-  border-color: rgba(118, 255, 101, 0.45);
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.22), rgba(118, 255, 101, 0.22));
-  box-shadow: 0 16px 30px rgba(57, 255, 20, 0.2);
-}
-
-.calendar-admin-page__page-btn.is-active {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.35), rgba(118, 255, 101, 0.32));
-  color: #051105;
-  border-color: rgba(118, 255, 101, 0.55);
-  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.28);
+  transition: var(--transition);
 }
 
 .calendar-admin-page .inventory-filters {

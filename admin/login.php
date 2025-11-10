@@ -71,7 +71,8 @@ body { display: flex; align-items: center; justify-content: center; height: 100v
 .login-container { background: rgba(20,20,20,0.9); border: 1px solid rgba(57,255,20,0.5); border-radius: 15px; box-shadow: 0 0 25px rgba(57,255,20,0.4); padding: 40px; width: 360px; text-align: center; }
 .login-container h2 { font-size: 1.8rem; margin-bottom: 20px; color: #39ff14; text-shadow: 0 0 15px #39ff14; }
 .login-container input { width: 100%; margin: 10px 0; padding: 12px; border: none; border-radius: 8px; background: #111; color: #fff; }
-.login-container button { width: 100%; background: linear-gradient(90deg, #39ff14, #76ff65); color: #fff; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+.login-container button { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--button-bg, rgba(57,255,20,0.1)); border: 1px solid var(--button-border, rgba(57,255,20,0.35)); color: var(--button-color, rgba(210,255,215,0.9)); padding: 12px; border-radius: 12px; cursor: pointer; margin-top: 15px; font-weight: 700; transition: var(--transition, all 0.25s ease); }
+.login-container button:hover { background: var(--button-hover-bg, linear-gradient(90deg,#39ff14,#76ff65)); color: var(--button-hover-color, #041104); box-shadow: var(--button-hover-shadow, 0 18px 32px rgba(57,255,20,0.32)); transform: var(--button-hover-transform, translateY(-1px)); }
 .error { color: #76ff65; margin-bottom: 15px; font-weight: 600; }
 .login-footer { margin-top: 15px; font-size: 0.9rem; color: #aaa; }
 </style>
