@@ -12,6 +12,13 @@
   --accent-light: #76ff65;
   --accent-soft: rgba(42, 217, 119, 0.12);
   --accent-glow: rgba(42, 217, 119, 0.5);
+  --button-bg: rgba(57, 255, 20, 0.1);
+  --button-border: rgba(57, 255, 20, 0.35);
+  --button-color: rgba(210, 255, 215, 0.9);
+  --button-hover-bg: linear-gradient(90deg, #39ff14, #76ff65);
+  --button-hover-color: #041104;
+  --button-hover-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
+  --button-hover-transform: translateY(-1px);
   --radius-lg: 18px;
   --radius-md: 14px;
   --transition: all 0.25s ease;
@@ -70,7 +77,9 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ===== Buttons ===== */
-.btn {
+.btn,
+.btn-primary,
+.btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -80,35 +89,108 @@ a { color: inherit; text-decoration: none; }
   font-weight: 700;
   letter-spacing: 0.02em;
   transition: var(--transition);
-  border: 1px solid transparent;
 }
-.btn-primary {
-  background: linear-gradient(145deg, var(--accent-dark), var(--accent));
-  color: #f2fff8;
-  border-color: rgba(42, 217, 119, 0.55);
-  box-shadow:
-    0 12px 24px rgba(17, 123, 69, 0.35),
-    0 0 18px var(--accent-glow);
+
+.footer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-decoration: none;
+  transition: var(--transition);
 }
-.btn-primary:hover {
-  transform: translateY(-2px) scale(1.03);
-  background: linear-gradient(145deg, var(--accent-dark), var(--accent-light));
-  box-shadow:
-    0 14px 28px rgba(17, 123, 69, 0.4),
-    0 0 26px var(--accent-glow);
+
+.overlay-btn {
+  margin-top: 12px;
+  font-weight: 800;
 }
-.btn-ghost {
-  border-color: rgba(42, 217, 119, 0.55);
-  color: var(--accent-light);
-  background: rgba(42, 217, 119, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+
+:is(
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .gallery-btn,
+  .filter-btn,
+  .button-main,
+  .button-secondary,
+  .footer-btn,
+  #main-footer .footer-btn,
+  #news .footer-btn,
+  .reaction-btn,
+  .toggle-comments-btn,
+  .edit-comment-form button,
+  .edit-btn,
+  .inventory-submit,
+  .inventory-submit--ghost,
+  .messages-page .delete-btn,
+  .pricing-admin-inline-btn,
+  .news-toolbar__btn,
+  .calendar-admin-page__page-btn
+) {
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
+  color: var(--button-color);
+  box-shadow: none;
+  transition: var(--transition, all 0.25s ease);
 }
-.btn-ghost:hover {
-  background: linear-gradient(145deg, var(--accent-dark), var(--accent));
-  color: #f2fff8;
-  box-shadow:
-    0 12px 24px rgba(17, 123, 69, 0.35),
-    0 0 20px var(--accent-glow);
+
+:is(
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .gallery-btn,
+  .filter-btn,
+  .button-main,
+  .button-secondary,
+  .footer-btn,
+  #main-footer .footer-btn,
+  #news .footer-btn,
+  .reaction-btn,
+  .toggle-comments-btn,
+  .edit-comment-form button,
+  .edit-btn,
+  .inventory-submit,
+  .inventory-submit--ghost,
+  .messages-page .delete-btn,
+  .pricing-admin-inline-btn,
+  .news-toolbar__btn,
+  .calendar-admin-page__page-btn
+):hover,
+:is(
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .gallery-btn,
+  .filter-btn,
+  .footer-btn,
+  #main-footer .footer-btn,
+  #news .footer-btn,
+  .reaction-btn,
+  .toggle-comments-btn,
+  .edit-comment-form button,
+  .edit-btn,
+  .inventory-submit,
+  .inventory-submit--ghost,
+  .messages-page .delete-btn,
+  .pricing-admin-inline-btn,
+  .news-toolbar__btn,
+  .calendar-admin-page__page-btn
+):focus-visible {
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+}
+
+.filter-btn.is-active,
+.calendar-admin-page__page-btn.is-active {
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  box-shadow: var(--button-hover-shadow);
 }
 
 /* ===== Hero ===== */
@@ -623,35 +705,10 @@ table.data-table tbody tr:last-child td {
   gap: 8px;
   padding: 12px 22px;
   border-radius: 999px;
-  border: none;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
   text-decoration: none;
-}
-
-.button-main {
-  background: linear-gradient(90deg, var(--accent), var(--accent-light));
-  color: #76ff65;
-  box-shadow: 0 0 22px rgba(57, 255, 20, 0.45);
-}
-
-.button-main:hover,
-.button-main:focus-visible {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 0 32px rgba(57, 255, 20, 0.65);
-}
-
-.button-secondary {
-  background: rgba(57, 255, 20, 0.08);
-  border: 1px solid rgba(57, 255, 20, 0.32);
-  color: var(--accent-light);
-}
-
-.button-secondary:hover,
-.button-secondary:focus-visible {
-  background: rgba(57, 255, 20, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.4);
 }
 
 .toolbar {
@@ -1283,24 +1340,13 @@ main form textarea:focus {
 }
 
 .filter-btn {
-  background: rgba(57,255,20,0.16);
-  border: 1px solid rgba(57,255,20,0.38);
-  color: #d6ffd6;
   padding: 9px 16px;
   border-radius: 999px;
   cursor: pointer;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .04em;
-  transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
-}
-
-.filter-btn:hover,
-.filter-btn.is-active {
-  background: linear-gradient(90deg,#39ff14,#76ff65);
-  color: #111;
-  box-shadow: 0 0 18px rgba(57,255,20,0.3);
-  transform: translateY(-1px);
+ transition: var(--transition);
 }
 
 .gallery-grid-section {
@@ -1593,9 +1639,6 @@ main form textarea:focus {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid rgba(42, 217, 119, 0.55);
-  color: #e7fff1;
-  background: linear-gradient(140deg, rgba(42, 217, 119, 0.16), rgba(8, 22, 16, 0.88));
   padding: 12px 26px;
   border-radius: 12px;
   font-weight: 700;
@@ -1603,17 +1646,6 @@ main form textarea:focus {
   text-decoration: none;
   transition: var(--transition);
   z-index: 1;
-  box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.35),
-    0 0 18px rgba(42, 217, 119, 0.28);
-}
-#main-footer .footer-btn:hover {
-  background: linear-gradient(145deg, var(--accent-dark), var(--accent-light));
-  color: #041a10;
-  box-shadow:
-    0 16px 28px rgba(0, 0, 0, 0.4),
-    0 0 26px var(--accent-glow);
-  transform: translateY(-2px) scale(1.04);
 }
 .footer-buttons {
   display: flex;
@@ -1984,21 +2016,11 @@ main form textarea:focus {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(57, 255, 20, 0.1);
-  border: 1px solid rgba(57, 255, 20, 0.32);
-  color: rgba(210, 255, 220, 0.88);
   border-radius: 999px;
   padding: 8px 16px;
   cursor: pointer;
   font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
-}
-
-.reaction-btn:hover {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.88), rgba(118, 255, 101, 0.8));
-  color: #041104;
-  box-shadow: 0 16px 28px rgba(57, 255, 20, 0.25);
-  transform: translateY(-1px);
+  transition: var(--transition);
 }
 
 .reaction-emoji {
@@ -2014,22 +2036,12 @@ main form textarea:focus {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: rgba(57, 255, 20, 0.1);
-  border: 1px solid rgba(57, 255, 20, 0.35);
-  color: rgba(210, 255, 215, 0.9);
   border-radius: 999px;
   padding: 10px 20px;
   cursor: pointer;
   font-weight: 600;
   letter-spacing: 0.2px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
-}
-
-.toggle-comments-btn:hover {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.88), rgba(118, 255, 101, 0.82));
-  color: #041104;
-  transform: translateY(-1px);
-  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
+  transition: var(--transition);
 }
 
 .news-card .comments {
@@ -2113,26 +2125,12 @@ main form textarea:focus {
   justify-content: center;
   gap: 10px;
   margin-top: 25px;
-  border: 1px solid rgba(42, 217, 119, 0.55);
-  color: #e7fff1;
   padding: 12px 30px;
   border-radius: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: linear-gradient(90deg,#39ff14,#76ff65);
   transition: var(--transition);
-  box-shadow:
-    0 14px 26px rgba(0, 0, 0, 0.35),
-    0 0 18px rgba(42, 217, 119, 0.3);
-}
-#news .footer-btn:hover {
-  background: linear-gradient(145deg, var(--accent-dark), var(--accent-light));
-  color: #041a10;
-  transform: translateY(-2px) scale(1.04);
-  box-shadow:
-    0 18px 32px rgba(0, 0, 0, 0.4),
-    0 0 26px var(--accent-glow);
 }
 
 /* ===== NEWS ARCHIVE (Inventory Look) ===== */
@@ -2318,6 +2316,10 @@ main form textarea:focus {
   text-align: center;
 }
 
+.edit-comment-form {
+  display: none;
+}
+
 .edit-comment-form textarea {
   width: 100%;
   background: rgba(18, 22, 24, 0.92);
@@ -2330,40 +2332,22 @@ main form textarea:focus {
 
 .edit-comment-form button {
   margin-top: 6px;
-  background: linear-gradient(120deg,#39ff14,#76ff65);
-  border: none;
   border-radius: 8px;
-  color: #041104;
   padding: 6px 12px;
   cursor: pointer;
   font-weight: 600;
 }
 
-.edit-comment-form button:hover {
-  box-shadow: 0 0 18px rgba(57,255,20,0.55);
-  transform: translateY(-1px);
-}
-
 .edit-btn {
-  background: rgba(57, 255, 20, 0.12);
-  border: 1px solid rgba(57, 255, 20, 0.35);
-  color: rgba(200, 255, 210, 0.88);
   border-radius: 999px;
   padding: 6px 16px;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  transition: var(--transition);
   margin-top: 10px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.edit-btn:hover {
-  background: linear-gradient(120deg, #39ff14, #76ff65);
-  color: #041104;
-  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
-  transform: translateY(-1px);
 }
 
 .edit-btn:active {
@@ -3079,20 +3063,8 @@ main form textarea:focus {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 1px solid rgba(57, 255, 20, 0.45);
-  background: rgba(10, 14, 16, 0.78);
-  color: rgba(200, 255, 210, 0.85);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.16);
-}
-
-.messages-page .delete-btn:hover,
-.messages-page .delete-btn:focus-visible {
-  transform: translateY(-2px);
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.85), rgba(118, 255, 101, 0.75));
-  color: #051105;
-  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.28);
+  transition: var(--transition);
 }
 
 .messages-manage-page .inventory-section {
@@ -3431,41 +3403,16 @@ gap: 12px;
   justify-content: center;
   padding: 12px 24px;
   border-radius: 999px;
-  border: none;
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.9), rgba(118, 255, 101, 0.9));
-  color: #051105;
   font-weight: 700;
   cursor: pointer;
   letter-spacing: 0.4px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 16px 28px rgba(57, 255, 20, 0.32);
+ transition: var(--transition);
   text-decoration: none;
-}
-
-.inventory-submit:hover,
-.inventory-submit:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 38px rgba(57, 255, 20, 0.42);
 }
 
 .inventory-submit--small {
   padding: 8px 18px;
   font-size: 0.9rem;
-  box-shadow: 0 12px 22px rgba(57, 255, 20, 0.28);
-}
-
-.inventory-submit--ghost {
-  background: rgba(57, 255, 20, 0.08);
-  color: rgba(200, 255, 210, 0.85);
-  border: 1px solid rgba(57, 255, 20, 0.32);
-  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.12);
-}
-
-.inventory-submit--ghost:hover,
-.inventory-submit--ghost:focus-visible {
-  box-shadow: 0 16px 26px rgba(57, 255, 20, 0.22);
-  color: #fff;
-  background: rgba(57, 255, 20, 0.18);
 }
 
 .inventory-submit--danger {
@@ -4177,9 +4124,6 @@ gap: 12px;
   gap: 6px;
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(57, 255, 20, 0.28);
-  background: rgba(57, 255, 20, 0.1);
-  color: rgba(240, 255, 245, 0.9);
   cursor: pointer;
   transition: var(--transition);
   font-weight: 600;
@@ -4187,8 +4131,6 @@ gap: 12px;
 
 .news-toolbar__btn:hover,
 .news-toolbar__btn:focus-visible {
-  background: rgba(57, 255, 20, 0.22);
-  color: #fff;
   outline: none;
 }
 
