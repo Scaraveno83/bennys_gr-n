@@ -2050,42 +2050,34 @@ main form textarea:focus {
 
 @media (min-width: 900px) {
   .news-card {
-    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    align-items: start;
+    grid-template-columns: 1fr;
   }
 
   .news-card__header {
     grid-column: 1;
-    grid-row: 1 / span 2;
-    flex-direction: column;
-    gap: 24px;
-    padding-right: clamp(12px, 2vw, 28px);
+    grid-row: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
+    padding-right: 20px;
   }
 
   .news-card__identity {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: clamp(14px, 2vw, 24px);
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
   }
 
   .news-card__meta {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 12px;
   }
 
   .news-card__body,
-  .news-card__footer {
-    grid-column: 2;
-  }
-
-  .news-card__body {
-    padding-top: 6px;
-  }
-
+  .news-card__footer,
   .news-card .comments {
-    grid-column: 1 / -1;
+    grid-column: 1;
   }
 }
 

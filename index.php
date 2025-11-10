@@ -199,7 +199,7 @@ $userRole   = $_SESSION['user_role'] ?? '';
   </section>
 
   <!-- ÜBER UNS -->
-  <<section id="about" class="cards-section surface-panel info-section">
+  <section id="about" class="cards-section surface-panel info-section">
     <header class="section-head section-head--center section-head--narrow">
       <span class="section-kicker">Werkstatt-DNA</span>
       <h2 class="section-title"><?= htmlspecialchars($about['title'] ?? 'Über uns') ?></h2>
@@ -214,7 +214,7 @@ $userRole   = $_SESSION['user_role'] ?? '';
   </section>
 
   <!-- SERVICES -->
-  <<section id="services" class="cards-section surface-panel info-section">
+  <section id="services" class="cards-section surface-panel info-section">
     <header class="section-head section-head--center section-head--narrow">
       <span class="section-kicker">Leistungen</span>
       <h2 class="section-title"><?= htmlspecialchars($services['title'] ?? 'Unsere Services') ?></h2>
