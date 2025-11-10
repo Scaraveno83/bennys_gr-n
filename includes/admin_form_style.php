@@ -33,18 +33,24 @@ form textarea {
 }
 form button {
   margin-top:20px;
-  background:linear-gradient(90deg,#39ff14,#76ff65);
-  border:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
   padding:12px 25px;
-  color:#fff;
-  border-radius:8px;
-  font-weight:bold;
+  border-radius:12px;
+  border:1px solid var(--button-border, rgba(57,255,20,0.35));
+  background:var(--button-bg, rgba(57,255,20,0.1));
+  color:var(--button-color, rgba(210,255,215,0.9));
+  font-weight:700;
   cursor:pointer;
-  transition:0.3s;
+  transition:var(--transition, all 0.25s ease);
 }
 form button:hover {
-  transform:scale(1.05);
-  box-shadow:0 0 15px rgba(57,255,20,0.6);
+  background:var(--button-hover-bg, linear-gradient(90deg,#39ff14,#76ff65));
+  color:var(--button-hover-color, #041104);
+  box-shadow:var(--button-hover-shadow, 0 18px 32px rgba(57,255,20,0.32));
+  transform:var(--button-hover-transform, translateY(-1px));
 }
 .success {
   background:rgba(40,255,120,0.1);

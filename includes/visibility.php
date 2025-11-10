@@ -115,10 +115,7 @@ function enforce_area_access($areaKey, $exitOnBlock = true) {
         <p>Dein Status ist aktuell <b style="color:#76ff65">Abwesend</b>.</p>
         <p style="opacity:.85">Bis voraussichtlich <b>'.$untilTxt.'</b>.</p>
         <p style="margin-top:10px;">Der Bereich <b>'.htmlspecialchars($areaKey).'</b> ist aktuell gesperrt.</p>
-        <a href="/index.php" style="
-          display:inline-block;margin-top:12px;padding:10px 16px;border-radius:10px;
-          background:linear-gradient(90deg,#39ff14,#76ff65);color:#fff;
-          text-decoration:none;font-weight:800;">Zur Startseite</a>
+       <a href="/index.php" class="footer-btn overlay-btn">Zur Startseite</a>
       </div></div>';
   if ($exitOnBlock) exit;
   return false;
