@@ -54,12 +54,12 @@ $userRole   = $_SESSION['user_role'] ?? '';
 
   <!-- 📰 NEWS / ANKÜNDIGUNGEN -->
   <section id="news" class="cards-section surface-panel">
-    <div class="section-head">
+    <header class="section-head section-head--center section-head--narrow">
       <h2 class="section-title">📰 Aktuelle News &amp; Ankündigungen</h2>
       <p class="section-intro">
         Alle internen und öffentlichen Meldungen laufen hier zusammen – sortiert wie in den Lager-Übersichten.
       </p>
-    </div>
+    </header>
 
            <?php if (!empty($latestNews)): ?>
       <div class="card-grid news-list">
@@ -199,43 +199,63 @@ $userRole   = $_SESSION['user_role'] ?? '';
   </section>
 
   <!-- ÜBER UNS -->
-  <section id="about" class="cards-section surface-panel">
-    <h2 class="section-title"><?= htmlspecialchars($about['title'] ?? 'Über uns') ?></h2>
-    <div class="card-grid">
-      <div class="card glass">
-        <p><?= nl2br(htmlspecialchars($about['text'] ?? 'Hier steht bald mehr über Benny’s Werkstatt...')) ?></p>
-      </div>
+  <<section id="about" class="cards-section surface-panel info-section">
+    <header class="section-head section-head--center section-head--narrow">
+      <span class="section-kicker">Werkstatt-DNA</span>
+      <h2 class="section-title"><?= htmlspecialchars($about['title'] ?? 'Über uns') ?></h2>
+    </header>
+    <div class="info-grid">
+      <article class="card glass info-card">
+        <div class="info-card__text">
+          <?= nl2br(htmlspecialchars($about['text'] ?? 'Hier steht bald mehr über Benny’s Werkstatt...')) ?>
+        </div>
+      </article>
     </div>
   </section>
 
   <!-- SERVICES -->
-  <section id="services" class="cards-section surface-panel">
-    <h2 class="section-title"><?= htmlspecialchars($services['title'] ?? 'Unsere Services') ?></h2>
-    <div class="card-grid">
-      <div class="card glass">
-        <p><?= nl2br(htmlspecialchars($services['text'] ?? 'Unsere Servicebeschreibungen folgen bald...')) ?></p>
-      </div>
+  <<section id="services" class="cards-section surface-panel info-section">
+    <header class="section-head section-head--center section-head--narrow">
+      <span class="section-kicker">Leistungen</span>
+      <h2 class="section-title"><?= htmlspecialchars($services['title'] ?? 'Unsere Services') ?></h2>
+    </header>
+    <div class="info-grid">
+      <article class="card glass info-card">
+        <div class="info-card__text">
+          <?= nl2br(htmlspecialchars($services['text'] ?? 'Unsere Servicebeschreibungen folgen bald...')) ?>
+        </div>
+      </article>
     </div>
   </section>
 
   <!-- TEAM -->
-  <section id="team" class="cards-section surface-panel">
-    <h2 class="section-title"><?= htmlspecialchars($team['title'] ?? 'Unser Team') ?></h2>
-    <div class="card-grid">
-      <div class="card glass">
-        <p><?= nl2br(htmlspecialchars($team['text'] ?? 'Unser Team stellt sich bald vor...')) ?></p>
-      </div>
+  <section id="team" class="cards-section surface-panel info-section">
+    <header class="section-head section-head--center section-head--narrow">
+      <span class="section-kicker">Crew</span>
+      <h2 class="section-title"><?= htmlspecialchars($team['title'] ?? 'Unser Team') ?></h2>
+    </header>
+    <div class="info-grid">
+      <article class="card glass info-card">
+        <div class="info-card__text">
+          <?= nl2br(htmlspecialchars($team['text'] ?? 'Unser Team stellt sich bald vor...')) ?>
+        </div>
+      </article>
     </div>
    </section>
 
   <!-- GALERIE TEASER -->
-  <section id="gallery-teaser" class="cards-section surface-panel">
-    <h2 class="section-title">Galerie</h2>
-    <div class="card-grid">
-      <div class="card glass gallery-teaser-card">
-        <p>Entdecke eindrucksvolle Bilder und Videos aus Benny's Werkstatt in unserer neuen Mediengalerie.</p>
-        <a class="btn btn-primary gallery-btn" href="gallery.php">Zur Galerie</a>
-      </div>
+  <section id="gallery-teaser" class="cards-section surface-panel gallery-section">
+    <header class="section-head section-head--center section-head--narrow">
+      <span class="section-kicker">Einblicke</span>
+      <h2 class="section-title">Galerie</h2>
+    </header>
+    <div class="gallery-teaser-grid">
+      <article class="card glass gallery-teaser-card">
+        <div class="gallery-teaser-card__content">
+          <p>Entdecke eindrucksvolle Bilder und Videos aus Benny's Werkstatt in unserer neuen Mediengalerie.</p>
+          <a class="btn btn-primary gallery-btn" href="gallery.php">Zur Galerie</a>
+        </div>
+      </article>
     </div>
   </section>
 </main>
