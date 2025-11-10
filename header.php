@@ -85,12 +85,18 @@ $adminErlaubteRollen = [
     <!-- 📋 Menü -->
     <div class="menu-container">
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">
-        <span class="menu-toggle__icon" aria-hidden="true">
-          <span class="menu-toggle__bar"></span>
-          <span class="menu-toggle__bar"></span>
-          <span class="menu-toggle__bar"></span>
+        <span class="menu-toggle__ring" aria-hidden="true"></span>
+        <span class="menu-toggle__inner">
+          <span class="menu-toggle__icon" aria-hidden="true">
+            <span class="menu-toggle__bar"></span>
+            <span class="menu-toggle__bar"></span>
+            <span class="menu-toggle__bar"></span>
+          </span>
+          <span class="menu-toggle__text">
+            <span class="menu-toggle__text-primary">Menü</span>
+            <span class="menu-toggle__text-secondary">Navigation</span>
+          </span>
         </span>
-        <span class="menu-toggle__label">Menü</span>
       </button>
       <nav class="dropdown" id="mainMenu">
 
