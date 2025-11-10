@@ -31,14 +31,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuToggle = document.querySelector('.menu-toggle');
   const dropdown = document.getElementById('mainMenu');
   if (menuToggle && dropdown) {
+    const setMenuState = (isOpen) => {
+      dropdown.classList.toggle('show', isOpen);
+      menuToggle.classList.toggle('is-open', isOpen);
+      menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    };
+
     menuToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      dropdown.classList.toggle('show');
+      const willOpen = !dropdown.classList.contains('show');
+      setMenuState(willOpen);
     });
 
     document.addEventListener('click', (e) => {
       if (!dropdown.contains(e.target) && !menuToggle.contains(e.target)) {
-        dropdown.classList.remove('show');
+        setMenuState(false);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        setMenuState(false);
       }
     });
   }

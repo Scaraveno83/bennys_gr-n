@@ -84,7 +84,14 @@ $adminErlaubteRollen = [
 
     <!-- 📋 Menü -->
     <div class="menu-container">
-      <button class="menu-toggle">☰ Menü</button>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">
+        <span class="menu-toggle__icon" aria-hidden="true">
+          <span class="menu-toggle__bar"></span>
+          <span class="menu-toggle__bar"></span>
+          <span class="menu-toggle__bar"></span>
+        </span>
+        <span class="menu-toggle__label">Menü</span>
+      </button>
       <nav class="dropdown" id="mainMenu">
 
         <!-- 🏠 Allgemein -->
