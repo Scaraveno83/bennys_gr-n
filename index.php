@@ -15,9 +15,63 @@ function getContent(string $section) {
     return $stmt->fetch();
 }
 
+/**
+ * Lade die neuesten Galerie-Bilder für die Startseiten-Vorschau.
+ */
+function getGalleryPreviewImages(int $limit = 3): array
+{
+    global $pdo;
+
+    $limit = max(1, $limit);
+    $hasMediaType = false;
+
+    try {
+        $colStmt = $pdo->query("SHOW COLUMNS FROM gallery LIKE 'media_type'");
+        $hasMediaType = $colStmt && $colStmt->rowCount() > 0;
+    } catch (PDOException $e) {
+        $hasMediaType = false;
+    }
+
+    $columns = ['id', 'image_url', 'alt_text'];
+    if ($hasMediaType) {
+        $columns[] = 'media_type';
+    }
+
+    $rawLimit = $limit * 3; // etwas mehr laden, damit Videos herausgefiltert werden können
+
+    $sql = 'SELECT ' . implode(', ', $columns) . ' FROM gallery ORDER BY id DESC LIMIT :limit';
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':limit', $rawLimit, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $images = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        if ($hasMediaType && ($row['media_type'] ?? 'image') !== 'image') {
+            continue;
+        }
+
+        $imageUrl = trim((string)($row['image_url'] ?? ''));
+        if ($imageUrl === '') {
+            continue;
+        }
+
+        $images[] = [
+            'image_url' => $imageUrl,
+            'alt_text'  => $row['alt_text'] ?? ''
+        ];
+
+        if (count($images) >= $limit) {
+            break;
+        }
+    }
+
+    return $images;
+}
+
 $about    = getContent('about');
 $services = getContent('services');
 $team     = getContent('team');
+$galleryPreview = getGalleryPreviewImages(3);
 
 /** NEWS laden (letzte 5) */
 $newsStmt   = $pdo->query("SELECT * FROM news ORDER BY erstellt_am DESC LIMIT 5");
@@ -252,8 +306,24 @@ $userRole   = $_SESSION['user_role'] ?? '';
     <div class="gallery-teaser-grid">
       <article class="card glass gallery-teaser-card">
         <div class="gallery-teaser-card__content">
-          <p>Entdecke eindrucksvolle Bilder und Videos aus Benny's Werkstatt in unserer neuen Mediengalerie.</p>
-          <a class="btn btn-primary gallery-btn" href="gallery.php">Zur Galerie</a>
+          <?php if (!empty($galleryPreview)): ?>
+            <div class="gallery-teaser-preview" aria-label="Neueste Eindrücke aus der Galerie">
+              <?php foreach ($galleryPreview as $preview): ?>
+                <figure class="gallery-teaser-thumb">
+                  <img src="<?= htmlspecialchars($preview['image_url'], ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($preview['alt_text'] !== '' ? $preview['alt_text'] : 'Galerie-Vorschau aus Benny\'s Werkstatt', ENT_QUOTES, 'UTF-8') ?>">
+                </figure>
+              <?php endforeach; ?>
+            </div>
+          <?php else: ?>
+            <div class="gallery-teaser-placeholder">
+              <span>Schon bald findest du hier frische Eindrücke aus der Werkstatt.</span>
+            </div>
+          <?php endif; ?>
+
+          <div class="gallery-teaser-card__text">
+            <p>Entdecke eindrucksvolle Bilder und Videos aus Benny's Werkstatt in unserer neuen Mediengalerie.</p>
+            <a class="btn btn-primary gallery-btn" href="gallery.php">Zur Galerie</a>
+          </div>
         </div>
       </article>
     </div>
