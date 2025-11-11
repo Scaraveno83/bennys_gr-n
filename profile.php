@@ -19,6 +19,7 @@ if (!empty($_SESSION['user_id'])) {
 
 
 
+
 // Wenn Profil-ID übergeben wurde → dieses Profil anzeigen
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $profil_id = (int)$_GET['id'];
@@ -58,11 +59,7 @@ $bild = (!empty($me['bild_url']) && file_exists($me['bild_url']))
 </head>
 <body>
 <?php include 'header.php'; ?>
-
-<div class="profile-card">
-  <img src="<?= htmlspecialchars($bild) ?>" class="profile-avatar" alt="Profilbild">
-  <h1><?= htmlspecialchars($me['name']) ?></h1>
-  <?php
+<?php
 $rang_icons = [
   "Geschäftsführung"        => "gf.png",
   "Stv. Geschäftsleitung"   => "stv_leitung.png",
@@ -80,32 +77,136 @@ $rang_icons = [
 ];
 
 $icon = isset($rang_icons[$me['rang']]) ? "pics/icons/" . $rang_icons[$me['rang']] : null;
+
+$skillsList = [];
+if (!empty($me['skills'])) {
+    $skillsList = array_filter(array_map('trim', preg_split('/[,;\n]+/', $me['skills'])));
+}
+
+$metrics = [];
+$metrics[] = [
+    'label' => 'Rang',
+    'value' => $me['rang'] ?: 'Unbekannt',
+    'hint'  => null,
+];
+
+if (!empty($me['status'])) {
+    $metrics[] = [
+        'label' => 'Status',
+        'value' => $me['status'],
+        'hint'  => 'Aktuelle Einsatzlage',
+    ];
+}
+
+if (!empty($skillsList)) {
+    $skillsPreview = array_slice($skillsList, 0, 3);
+    $skillsHint = implode(', ', $skillsPreview);
+    if (count($skillsList) > count($skillsPreview)) {
+        $skillsHint .= ' …';
+    }
+
+    $metrics[] = [
+        'label' => 'Kompetenzen',
+        'value' => count($skillsList),
+        'hint'  => $skillsHint ?: null,
+    ];
+}
+
+if (!empty($me['phone'])) {
+    $metrics[] = [
+        'label' => 'Telefon',
+        'value' => $me['phone'],
+        'hint'  => 'Direkter Draht',
+    ];
+}
+
+$contactItems = [
+    'E-Mail' => !empty($me['email']) ? $me['email'] : null,
+    'Telefon' => !empty($me['phone']) ? $me['phone'] : null,
+    'Rang' => !empty($me['rang']) ? $me['rang'] : null,
+];
 ?>
 
-<?php if ($icon && file_exists($icon)): ?>
-  <p style="display:flex;align-items:center;justify-content:center;gap:8px;">
-    <img src="<?= $icon ?>" alt="Rang" style="height:22px;">
-    <strong><?= htmlspecialchars($me['rang']) ?></strong>
-  </p>
-<?php else: ?>
-  <p><strong><?= htmlspecialchars($me['rang']) ?></strong></p>
-<?php endif; ?>
+<main class="inventory-page profile-page">
+  <header class="inventory-header profile-header">
+    <div class="profile-header__avatar">
+      <img src="<?= htmlspecialchars($bild) ?>" class="profile-avatar" alt="Profilbild">
+    </div>
+    <div class="profile-header__content">
+      <h1 class="inventory-title">👤 <?= htmlspecialchars($me['name']) ?></h1>
+
+      <div class="profile-rank">
+        <?php if ($icon && file_exists($icon)): ?>
+          <img src="<?= htmlspecialchars($icon) ?>" alt="Rang" class="profile-rank__icon">
+        <?php endif; ?>
+        <span class="profile-rank__title"><?= htmlspecialchars($me['rang'] ?: 'Unbekannter Rang') ?></span>
+      </div>
+
+      <?php if (!empty($me['status'])): ?>
+        <p class="inventory-description profile-status"><?= htmlspecialchars($me['status']) ?></p>
+      <?php endif; ?>
+
+      <?php if (!empty($metrics)): ?>
+        <div class="inventory-metrics profile-metrics">
+          <?php foreach ($metrics as $metric): ?>
+            <div class="inventory-metric">
+              <span class="inventory-metric__label"><?= htmlspecialchars($metric['label']) ?></span>
+              <span class="inventory-metric__value"><?= htmlspecialchars($metric['value']) ?></span>
+              <?php if (!empty($metric['hint'])): ?>
+                <span class="inventory-metric__hint"><?= htmlspecialchars($metric['hint']) ?></span>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </header>
 
   <?php if (!empty($me['beschreibung'])): ?>
-  <p><?= nl2br(htmlspecialchars($me['beschreibung'])) ?></p>
+    <section class="inventory-section profile-bio">
+      <h2>Über <?= htmlspecialchars($me['name']) ?></h2>
+      <p><?= nl2br(htmlspecialchars($me['beschreibung'])) ?></p>
+    </section>
   <?php endif; ?>
 
-  <?php if (!empty($me['skills'])): ?><p><strong>Skills:</strong> <?= htmlspecialchars($me['skills']) ?></p><?php endif; ?>
-  <?php if (!empty($me['status'])): ?><p><strong>Status:</strong> <?= htmlspecialchars($me['status']) ?></p><?php endif; ?>
-  <?php if (!empty($me['email'])): ?><p><strong>E-Mail:</strong> <?= htmlspecialchars($me['email']) ?></p><?php endif; ?>
-  <?php if (!empty($me['phone'])): ?><p><strong>Telefon:</strong> <?= htmlspecialchars($me['phone']) ?></p><?php endif; ?>
+  <?php if (!empty($skillsList)): ?>
+    <section class="inventory-section profile-skills">
+      <h2>Kompetenzen</h2>
+      <ul class="profile-skills__list">
+        <?php foreach ($skillsList as $skill): ?>
+          <li><?= htmlspecialchars($skill) ?></li>
+        <?php endforeach; ?>
+      </ul>
+    </section>
+  <?php endif; ?>
 
-  <br>
-<?php if ($me['id'] == $logged_mitarbeiter_id): ?>
-    <a href="profile_edit.php" class="button-main">✏️ Profil bearbeiten</a>
-<?php endif; ?>
+  <?php if (array_filter($contactItems)): ?>
+    <section class="inventory-section profile-contact">
+      <h2>Kontakt &amp; Details</h2>
+      <div class="profile-details-grid">
+        <?php foreach ($contactItems as $label => $value): ?>
+          <?php if (!$value) { continue; } ?>
+          <div class="profile-detail">
+            <span class="profile-detail__label"><?= htmlspecialchars($label) ?></span>
+            <?php if ($label === 'E-Mail'): ?>
+              <a class="profile-detail__value" href="mailto:<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($value) ?></a>
+            <?php else: ?>
+              <span class="profile-detail__value"><?= htmlspecialchars($value) ?></span>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </section>
+  <?php endif; ?>
 
-</div>
+  <?php if ($me['id'] == $logged_mitarbeiter_id): ?>
+    <section class="inventory-section profile-actions">
+      <h2>Aktionen</h2>
+      <p>Aktualisiere deine Angaben und halte dein Profil auf dem neuesten Stand.</p>
+      <a href="profile_edit.php" class="button-main">✏️ Profil bearbeiten</a>
+    </section>
+  <?php endif; ?>
+</main>
 
 <footer id="main-footer">
   <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
