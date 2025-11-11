@@ -46,11 +46,20 @@ form button {
   cursor:pointer;
   transition:var(--transition, all 0.25s ease);
 }
-form button:hover {
-  background:var(--button-hover-bg, linear-gradient(90deg,#39ff14,#76ff65));
+form button:hover,
+form button:focus-visible {
+  background:var(
+    --button-hover-bg,
+    linear-gradient(132deg, rgba(42,217,119,0.34), rgba(118,255,101,0.26))
+  );
   color:var(--button-hover-color, #041104);
-  box-shadow:var(--button-hover-shadow, 0 18px 32px rgba(57,255,20,0.32));
-  transform:var(--button-hover-transform, translateY(-1px));
+  box-shadow:var(
+    --button-hover-shadow,
+    0 18px 36px rgba(17,123,69,0.26), inset 0 0 22px rgba(118,255,101,0.24)
+  );
+  transform:var(--button-hover-transform, translateY(-3px) scale(1.02));
+  border-color:var(--button-hover-border, rgba(42,217,119,0.6));
+  outline:none;
 }
 .success {
   background:rgba(40,255,120,0.1);
