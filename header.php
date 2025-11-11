@@ -20,6 +20,8 @@ if (!isset($pdo)) {
     require_once $basePath . 'includes/db.php';
 }
 
+require_once $basePath . 'includes/gamification.php';
+
 /* === Rang des eingeloggten Mitarbeiters abrufen === */
 $userRang = null;
 if (!empty($_SESSION['user_id'])) {
@@ -47,6 +49,8 @@ if (!empty($_SESSION['user_id'])) {
         $unreadMessages = 0;
     }
 }
+
+$topPerformer = gamification_get_top_performer($pdo);
 
 /* === Erlaubte Ränge === */
 $azubiErlaubteRollen = [
@@ -82,6 +86,19 @@ $adminErlaubteRollen = [
       <img src="<?= $basePath ?>pics/header_logo.png" alt="Benny’s Original Motor Works" class="brand-banner">
     </a>
 
+    <?php if (!empty($topPerformer)): ?>
+      <a class="header-highlight" href="<?= htmlspecialchars($basePath . (string) ($topPerformer['profile_path'] ?? 'profile.php')) ?>">
+        <span class="header-highlight__label">Top Performer</span>
+        <span class="header-highlight__name"><?= htmlspecialchars((string) ($topPerformer['name'] ?? '')) ?></span>
+        <span class="header-highlight__score">
+          <?= number_format((int) ($topPerformer['xp']['total'] ?? 0), 0, ',', '.') ?> XP
+          <?php if (!empty($topPerformer['level']['number'])): ?>
+            · Level <?= htmlspecialchars((string) $topPerformer['level']['number']) ?>
+          <?php endif; ?>
+        </span>
+      </a>
+    <?php endif; ?>
+    
     <!-- 📋 Menü -->
     <div class="menu-container">
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">

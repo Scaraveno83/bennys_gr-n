@@ -1,11 +1,13 @@
 <?php
 session_start();
 require_once 'includes/db.php';
+require_once 'includes/gamification.php';
 
 
 // mitarbeiter laden
 $stmt = $pdo->query("SELECT * FROM mitarbeiter ORDER BY rang ASC, name ASC");
 $team = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$leaderboard = gamification_get_leaderboard($pdo, 5);
 
 // Rang-Sortierung & Icons
 $rang_order = [
@@ -124,6 +126,83 @@ uksort($teamNachRang, static function ($a, $b) use ($rang_order) {
   gap: 24px;
 }
 
+.team-leaderboard {
+  display: grid;
+  gap: 18px;
+}
+
+.team-leaderboard__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.team-leaderboard__intro {
+  margin: 0;
+  color: rgba(200, 255, 210, 0.75);
+  font-size: 0.95rem;
+}
+
+.team-leaderboard__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.team-leaderboard__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(57, 255, 20, 0.18);
+  background: rgba(9, 13, 15, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.06);
+}
+
+.team-leaderboard__rank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(118, 255, 101, 0.9);
+}
+
+.team-leaderboard__content {
+  display: grid;
+  gap: 4px;
+}
+
+.team-leaderboard__name {
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+}
+
+.team-leaderboard__name:hover,
+.team-leaderboard__name:focus-visible {
+  color: rgba(118, 255, 101, 0.95);
+}
+
+.team-leaderboard__meta {
+  font-size: 0.85rem;
+  color: rgba(200, 255, 210, 0.7);
+}
+
+.team-leaderboard__score {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(222, 255, 232, 0.85);
+}
+
+.team-leaderboard__empty {
+  margin: 0;
+  color: rgba(200, 255, 210, 0.72);
+}
+
 .team-group {
   display: grid;
   gap: 18px;
@@ -230,6 +309,15 @@ uksort($teamNachRang, static function ($a, $b) use ($rang_order) {
     width: 96px;
     height: 96px;
   }
+  
+  .team-leaderboard__item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .team-leaderboard__score {
+    justify-self: flex-start;
+  }
 }
 </style>
 </head>
@@ -272,6 +360,32 @@ uksort($teamNachRang, static function ($a, $b) use ($rang_order) {
       </article>
     </div>
   </header>
+
+  <section class="inventory-section team-leaderboard">
+    <div class="team-leaderboard__heading">
+      <h2>🏆 Gamification Rangliste</h2>
+      <p class="team-leaderboard__intro">Punkte aus Wochenaufgaben, Forum und News-Reaktionen – immer live aktualisiert.</p>
+    </div>
+
+    <?php if (!empty($leaderboard)): ?>
+      <ol class="team-leaderboard__list">
+        <?php foreach ($leaderboard as $index => $entry): ?>
+          <li class="team-leaderboard__item">
+            <span class="team-leaderboard__rank">#<?= $index + 1 ?></span>
+            <div class="team-leaderboard__content">
+              <a class="team-leaderboard__name" href="profile.php?id=<?= (int) ($entry['id'] ?? 0) ?>">
+                <?= htmlspecialchars((string) ($entry['name'] ?? 'Unbekannt')) ?>
+              </a>
+              <span class="team-leaderboard__meta">Level <?= htmlspecialchars((string) ($entry['level']['number'] ?? 1)) ?> · <?= htmlspecialchars((string) ($entry['level']['title'] ?? '')) ?></span>
+            </div>
+            <span class="team-leaderboard__score"><?= number_format((int) ($entry['xp']['total'] ?? 0), 0, ',', '.') ?> XP</span>
+          </li>
+        <?php endforeach; ?>
+      </ol>
+    <?php else: ?>
+      <p class="team-leaderboard__empty">Noch keine Aktivitäten erfasst – starte mit deinen ersten Wochenaufgaben!</p>
+    <?php endif; ?>
+  </section>
 
   <section class="inventory-section">
     <h2>Team nach Rang</h2>

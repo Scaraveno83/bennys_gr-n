@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/gamification.php';
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -47,6 +48,15 @@ if (!$me) {
 $bild = (!empty($me['bild_url']) && file_exists($me['bild_url']))
     ? $me['bild_url']
     : 'pics/default-avatar.png';
+
+    $gamificationProfile = gamification_get_profile($pdo, (int) ($me['id'] ?? 0));
+
+if (!function_exists('profile_number_format')) {
+    function profile_number_format(int $value): string
+    {
+        return number_format($value, 0, ',', '.');
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -120,6 +130,14 @@ if (!empty($me['phone'])) {
     ];
 }
 
+if (!empty($gamificationProfile)) {
+    $metrics[] = [
+        'label' => 'Gesamt-XP',
+        'value' => profile_number_format((int) ($gamificationProfile['xp']['total'] ?? 0)),
+        'hint'  => 'Level ' . ($gamificationProfile['level']['number'] ?? 1),
+    ];
+}
+
 $contactItems = [
     'E-Mail' => !empty($me['email']) ? $me['email'] : null,
     'Telefon' => !empty($me['phone']) ? $me['phone'] : null,
@@ -161,6 +179,97 @@ $contactItems = [
       <?php endif; ?>
     </div>
   </header>
+
+  <?php if (!empty($gamificationProfile)): ?>
+    <?php
+      $level = $gamificationProfile['level'] ?? [];
+      $progress = $gamificationProfile['progress'] ?? [];
+      $xpTotal = (int) ($gamificationProfile['xp']['total'] ?? 0);
+      $progressNeededRaw = (int) ($progress['xp_needed'] ?? 0);
+      $progressMax = $progressNeededRaw > 0 ? $progressNeededRaw : 1;
+      $progressValue = $progressNeededRaw > 0
+        ? min($progressMax, max(0, (int) ($progress['xp_into_level'] ?? 0)))
+        : $progressMax;
+      $progressPercent = $progressNeededRaw > 0
+        ? min(100, max(0, (float) ($progress['percent'] ?? 0)))
+        : 100;
+      $xpToNext = null;
+      if (!empty($level['next_threshold'])) {
+          $xpToNext = max(0, (int) $level['next_threshold'] - $xpTotal);
+      }
+      $lastAchievement = $gamificationProfile['last_achievement'] ?? null;
+      $nextAchievement = null;
+      if (!$lastAchievement && !empty($gamificationProfile['achievements'])) {
+          foreach ($gamificationProfile['achievements'] as $candidate) {
+              if (empty($candidate['unlocked'])) {
+                  $nextAchievement = $candidate;
+                  break;
+              }
+          }
+      }
+    ?>
+    <section class="inventory-section profile-gamification">
+      <div class="profile-gamification__heading">
+        <h2>Level &amp; Erfolge</h2>
+        <span class="profile-level-badge">
+          Level <?= htmlspecialchars((string) ($level['number'] ?? 1)) ?>
+          <?php if (!empty($level['title'])): ?>· <?= htmlspecialchars((string) $level['title']) ?><?php endif; ?>
+        </span>
+      </div>
+
+      <div class="profile-xp-overview">
+        <div class="profile-xp-overview__row">
+          <span class="profile-xp-overview__xp"><?= profile_number_format($xpTotal) ?> XP gesamt</span>
+          <?php if (!empty($level['next_number'])): ?>
+            <span class="profile-xp-overview__next">Noch <?= profile_number_format((int) ($xpToNext ?? 0)) ?> XP bis Level <?= htmlspecialchars((string) $level['next_number']) ?></span>
+          <?php else: ?>
+            <span class="profile-xp-overview__next">Max-Level erreicht – weiter so!</span>
+          <?php endif; ?>
+        </div>
+        <div
+          class="profile-xp-bar"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="<?= htmlspecialchars((string) $progressMax) ?>"
+          aria-valuenow="<?= htmlspecialchars((string) $progressValue) ?>"
+        >
+          <span style="width: <?= htmlspecialchars(number_format($progressPercent, 2, '.', '')) ?>%"></span>
+        </div>
+      </div>
+
+      <div class="profile-xp-breakdown">
+        <div class="profile-xp-breakdown__item">
+          <span class="profile-xp-breakdown__label">Wochenaufgaben</span>
+          <span class="profile-xp-breakdown__value"><?= profile_number_format((int) ($gamificationProfile['metrics']['tasks'] ?? 0)) ?></span>
+          <span class="profile-xp-breakdown__hint"><?= profile_number_format((int) ($gamificationProfile['xp_breakdown']['tasks'] ?? 0)) ?> XP</span>
+        </div>
+        <div class="profile-xp-breakdown__item">
+          <span class="profile-xp-breakdown__label">Forum-Beiträge</span>
+          <span class="profile-xp-breakdown__value"><?= profile_number_format((int) ($gamificationProfile['metrics']['forum_posts'] ?? 0)) ?></span>
+          <span class="profile-xp-breakdown__hint"><?= profile_number_format((int) ($gamificationProfile['xp_breakdown']['forum_posts'] ?? 0)) ?> XP</span>
+        </div>
+        <div class="profile-xp-breakdown__item">
+          <span class="profile-xp-breakdown__label">News-Reaktionen</span>
+          <span class="profile-xp-breakdown__value"><?= profile_number_format((int) ($gamificationProfile['metrics']['news_reactions'] ?? 0)) ?></span>
+          <span class="profile-xp-breakdown__hint"><?= profile_number_format((int) ($gamificationProfile['xp_breakdown']['news_reactions'] ?? 0)) ?> XP</span>
+        </div>
+      </div>
+
+      <?php if (!empty($lastAchievement)): ?>
+        <div class="profile-achievement-card">
+          <span class="profile-achievement-card__eyebrow">Letztes Achievement</span>
+          <h3 class="profile-achievement-card__title"><?= htmlspecialchars((string) ($lastAchievement['title'] ?? '')) ?></h3>
+          <p class="profile-achievement-card__text"><?= htmlspecialchars((string) ($lastAchievement['description'] ?? '')) ?></p>
+        </div>
+      <?php elseif (!empty($nextAchievement)): ?>
+        <div class="profile-achievement-card profile-achievement-card--locked">
+          <span class="profile-achievement-card__eyebrow">Nächstes Ziel</span>
+          <h3 class="profile-achievement-card__title"><?= htmlspecialchars((string) ($nextAchievement['title'] ?? '')) ?></h3>
+          <p class="profile-achievement-card__text"><?= htmlspecialchars((string) ($nextAchievement['description'] ?? '')) ?></p>
+        </div>
+      <?php endif; ?>
+    </section>
+  <?php endif; ?>
 
   <?php if (!empty($me['beschreibung'])): ?>
     <section class="inventory-section profile-bio">
