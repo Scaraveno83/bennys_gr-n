@@ -595,6 +595,14 @@ table.data-table tbody tr:last-child td {
   border-bottom: none;
 }
 
+table.data-table tbody tr.table-row--success {
+  background: rgba(57, 255, 20, 0.12);
+}
+
+table.data-table tbody tr.table-row--success:hover {
+  background: rgba(57, 255, 20, 0.18);
+}
+
 .low-stock {
   color: var(--accent-light);
   font-weight: 700;
@@ -2661,6 +2669,77 @@ main form textarea:focus {
 .inventory-section p {
   margin: 0;
   color: rgba(255, 255, 255, 0.72);
+}
+
+.tasks-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.task-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(57, 255, 20, 0.18);
+  background: rgba(8, 12, 14, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.task-card:hover,
+.task-card:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
+}
+
+.task-card--done {
+  border-color: rgba(118, 255, 101, 0.55);
+  background: rgba(32, 64, 40, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(118, 255, 101, 0.2), 0 18px 32px rgba(8, 32, 12, 0.45);
+}
+
+.task-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.task-card__title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: rgba(240, 255, 245, 0.95);
+}
+
+.task-card__badge {
+  font-size: 1.3rem;
+}
+
+.task-card__meta,
+.task-card__progress {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.95rem;
+}
+
+.task-progress {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.task-progress__bar {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: linear-gradient(120deg, rgba(57, 255, 20, 0.85), rgba(118, 255, 101, 0.75));
+  border-radius: inherit;
+  transition: width 0.4s ease;
 }
 
 .inventory-alert {

@@ -4,6 +4,7 @@ ini_set('display_errors', 1);
 
 session_start();
 require_once 'includes/db.php';
+require_once 'includes/wochenaufgaben_helpers.php';
 
 /* === Zugriff prüfen (Admin oder Mitarbeiter) === */
 if (
@@ -30,8 +31,16 @@ if (!empty($_SESSION['user_id'])) {
   $userRang = $stmt->fetchColumn();
 }
 
-/* === Produkte === */
+/* === Grundkonfiguration === */
 $produkte = ['Öl', 'Fasern', 'Stoff', 'Eisenbarren', 'Eisenerz'];
+$aktuelleWoche = normalizeKalenderwoche(null);
+$wochenzeitraum = getWeekPeriod($aktuelleWoche);
+$anzeigeMontag = $wochenzeitraum['start_date'];
+$anzeigeSonntag = $wochenzeitraum['end_date'];
+$zeitraumStart = $wochenzeitraum['start_datetime'];
+$zeitraumEnde = $wochenzeitraum['end_datetime'];
+
+ensureWochenaufgabenPlanTable($pdo);
 
 /* === Ranggruppen für Lagerzuweisung === */
 $azubiRollen = [
@@ -122,16 +131,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
 }
 
 /* === Nur aktuelle Woche abrufen === */
-$montag = date('Y-m-d', strtotime('monday this week'));
-$sonntag = date('Y-m-d 23:59:59', strtotime('sunday this week'));
-
 $stmt = $pdo->prepare("
   SELECT * FROM wochenaufgaben
   WHERE mitarbeiter = ? AND datum BETWEEN ? AND ?
   ORDER BY datum DESC
 ");
-$stmt->execute([$nutzername, $montag, $sonntag]);
-$eintraege = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->execute([$nutzername, $zeitraumStart, $zeitraumEnde]);
+$eintraege = $stmt->fetchAll(PDO::FETCH_ASSOC)
 
 /* === Gesamtwerte berechnen === */
 $gesamt = array_fill_keys($produkte, 0);
@@ -145,6 +151,37 @@ foreach ($eintraege as $e) {
 
 $anzahlEintraege = count($eintraege);
 $letzterEintrag = $eintraege[0]['datum'] ?? null;
+
+/* === Zugewiesene Aufgaben & Fortschritt === */
+$stmtAufgaben = $pdo->prepare(
+  "SELECT id, produkt, zielmenge FROM wochenaufgaben_plan WHERE mitarbeiter = ? AND kalenderwoche = ? ORDER BY produkt"
+);
+$stmtAufgaben->execute([$nutzername, $aktuelleWoche]);
+$aufgaben = $stmtAufgaben->fetchAll(PDO::FETCH_ASSOC);
+
+$aufgabenFortschritt = [];
+$summeProzent = 0;
+$abgeschlossen = 0;
+foreach ($aufgaben as $aufgabe) {
+  $produkt = $aufgabe['produkt'];
+  $ziel = (int)$aufgabe['zielmenge'];
+  $erreicht = isset($gesamt[$produkt]) ? (int)$gesamt[$produkt] : 0;
+  $prozent = $ziel > 0 ? (int)round(min(100, ($erreicht / $ziel) * 100)) : ($erreicht > 0 ? 100 : 0);
+  $aufgabenFortschritt[] = [
+    'produkt' => $produkt,
+    'ziel' => $ziel,
+    'erreicht' => $erreicht,
+    'prozent' => $prozent,
+    'erledigt' => $ziel > 0 ? $erreicht >= $ziel : $erreicht > 0,
+  ];
+  $summeProzent += $prozent;
+  if ($ziel > 0 ? $erreicht >= $ziel : $erreicht > 0) {
+    $abgeschlossen++;
+  }
+}
+
+$anzahlAufgaben = count($aufgabenFortschritt);
+$durchschnittFortschritt = $anzahlAufgaben > 0 ? (int)round($summeProzent / $anzahlAufgaben) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -161,12 +198,12 @@ $letzterEintrag = $eintraege[0]['datum'] ?? null;
 <?php include 'header.php'; ?>
 
 <main class="inventory-page">
-  <header class="inventory-header">
+   <header class="inventory-header">
     <h1 class="inventory-title">📦 Meine Wochenaufgaben</h1>
     <p class="inventory-description">
       Hallo <strong><?= htmlspecialchars($nutzername) ?></strong>!<br>
-      Hier siehst du deine gebuchten Ressourcen für die Kalenderwoche <?= date('W') ?>
-      (<?= date('d.m.', strtotime($montag)) ?> – <?= date('d.m.Y', strtotime($sonntag)) ?>).
+      Hier siehst du deine gebuchten Ressourcen für die Kalenderwoche <?= htmlspecialchars(substr($aktuelleWoche, -2)) ?>
+      (<?= date('d.m.', strtotime($anzeigeMontag)) ?> – <?= date('d.m.Y', strtotime($anzeigeSonntag)) ?>).
     </p>
     <p class="inventory-info">
       Einträge werden automatisch dem passenden Lager (Azubi oder Hauptlager) gutgeschrieben.
@@ -183,6 +220,16 @@ $letzterEintrag = $eintraege[0]['datum'] ?? null;
         <span class="inventory-metric__hint">über alle Produkte</span>
       </div>
       <div class="inventory-metric">
+        <span class="inventory-metric__label">Zugewiesene Aufgaben</span>
+        <span class="inventory-metric__value"><?= $anzahlAufgaben ?></span>
+        <span class="inventory-metric__hint"><?= $abgeschlossen ?> erledigt</span>
+      </div>
+      <div class="inventory-metric">
+        <span class="inventory-metric__label">Ø Fortschritt</span>
+        <span class="inventory-metric__value"><?= $durchschnittFortschritt ?>%</span>
+        <span class="inventory-metric__hint">über alle Aufgaben</span>
+      </div>
+      <div class="inventory-metric">
         <span class="inventory-metric__label">Letzte Buchung</span>
         <span class="inventory-metric__value">
           <?= $letzterEintrag ? date('d.m.Y', strtotime($letzterEintrag)) : '–' ?>
@@ -193,6 +240,31 @@ $letzterEintrag = $eintraege[0]['datum'] ?? null;
       </div>
     </div>
   </header>
+
+ <section class="inventory-section">
+    <h2>Meine Wochenziele</h2>
+    <?php if ($aufgabenFortschritt): ?>
+      <div class="tasks-grid">
+        <?php foreach ($aufgabenFortschritt as $aufgabe): ?>
+          <article class="task-card <?= $aufgabe['erledigt'] ? 'task-card--done' : '' ?>">
+            <header class="task-card__header">
+              <span class="task-card__title"><?= htmlspecialchars($aufgabe['produkt']) ?></span>
+              <span class="task-card__badge"><?= $aufgabe['erledigt'] ? '✅' : '🎯' ?></span>
+            </header>
+            <p class="task-card__meta">
+              Ziel: <strong><?= (int)$aufgabe['ziel'] ?></strong> • Erreicht: <strong><?= (int)$aufgabe['erreicht'] ?></strong>
+            </p>
+            <div class="task-progress">
+              <div class="task-progress__bar" style="width: <?= max(0, min(100, $aufgabe['prozent'])) ?>%"></div>
+            </div>
+            <p class="task-card__progress">Fortschritt: <?= $aufgabe['prozent'] ?>%</p>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <p class="inventory-section__intro">Für diese Woche wurden dir noch keine Aufgaben zugewiesen.</p>
+    <?php endif; ?>
+  </section>
 
   <section class="inventory-section">
     <h2>Neuen Eintrag erfassen</h2>
