@@ -1677,7 +1677,7 @@ main form textarea:focus {
   gap: 15px;
   padding: 50px 20px;
   background: radial-gradient(circle at top, #111 0%, #000 85%);
-  border-top: 2px solid #39ff14;
+  border-top: 2px solid #117b45;
   text-align: center;
   position: relative;
   overflow: hidden;

@@ -15,22 +15,18 @@
   --halo-inner: rgba(var(--accent-pop-rgb), 0.3);
   --outline: rgba(var(--accent-rgb), 0.4);
   --shadow: rgba(3, 6, 3, 0.82);
-  --header-height: clamp(140px, 18vw, 220px);
 }
 
 /* ===== HEADER BASIS ===== */
 .site-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 20000;
+  z-index: 2400;
   width: 100%;
-  min-height: var(--header-height);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 0 18px;
+  padding: 0;
   box-sizing: border-box;
   background: linear-gradient(155deg, var(--surface-alt), var(--bg-alt) 48%, var(--bg));
   border-bottom: 2px solid var(--outline);
@@ -51,8 +47,10 @@
 }
 
 .site-header .header-inner {
-  width: min(1180px, calc(100% - 40px));
-  margin: 0 auto;
+ position: relative;
+  width: 100%;
+  margin: 0;
+  flex: 1 1 auto;
 }
 
 /* ===== LEUCHTEFFEKTE ===== */
@@ -86,15 +84,13 @@
 /* ===== LOGO-BANNER ===== */
 .site-header .brand {
   display: block;
+  width: 100%;
 }
 
 .site-header .brand-banner {
-  display: block;
   width: 100%;
-  max-width: min(100%, 960px);
-  max-height: calc(var(--header-height) - 40px);
-  margin: 0 auto;
-  object-fit: contain;
+  display: block;
+  object-fit: cover;
   object-position: center;
   filter: drop-shadow(0 0 30px rgba(var(--accent-soft-rgb), 0.28));
   transition: transform 0.5s ease, filter 0.5s ease;
@@ -340,7 +336,7 @@
 }
 
 .header-offset {
-  height: calc(var(--header-height) + 24px);
+  height: 0;
 }
 
 /* ===== BADGE ===== */
@@ -385,7 +381,6 @@
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 960px) {
-  :root { --header-height: clamp(120px, 24vw, 180px); }
   .site-header .menu-container { right: 18px; }
   .site-header .dropdown {
     grid-template-columns: 1fr;
@@ -396,10 +391,5 @@
 }
 
 @media (max-width: 640px) {
-  :root { --header-height: clamp(110px, 32vw, 150px); }
-  .site-header { padding: 12px 0 14px; }
-  .site-header .brand-banner {
-    max-height: calc(var(--header-height) - 28px);
-  }
   .site-header .dropdown { top: 58px; }
 }
