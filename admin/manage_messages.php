@@ -3,15 +3,6 @@ session_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/admin_access.php';
 
-/* === Zugriffsschutz: Nur Admins dürfen diese Seite aufrufen === */
-if (
-    !isset($_SESSION['user_role']) ||
-    $_SESSION['user_role'] !== 'admin'
-) {
-    header("Location: login.php");
-    exit;
-}
-
 $search = trim($_GET['search'] ?? '');
 $filter = trim($_GET['filter'] ?? '');
 
