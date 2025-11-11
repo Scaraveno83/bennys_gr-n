@@ -69,20 +69,34 @@ body {
 }
 
 .logout-box a {
-  display: inline-block;
-  padding: 10px 25px;
-  color: #fff;
-  background: linear-gradient(90deg, #39ff14, #76ff65);
-  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 26px;
+  border-radius: 12px;
+  border: 1px solid var(--button-border, rgba(57,255,20,0.35));
+  background: var(--button-bg, rgba(57,255,20,0.1));
+  color: var(--button-color, rgba(210,255,215,0.9));
   text-decoration: none;
-  font-weight: bold;
-  transition: 0.3s;
-  box-shadow: 0 0 12px rgba(57,255,20,0.4);
+  font-weight: 700;
+  transition: var(--transition, all 0.25s ease);
+  box-shadow: none;
 }
 
-.logout-box a:hover {
-  transform: scale(1.08);
-  box-shadow: 0 0 25px rgba(57,255,20,0.7);
+.logout-box a:hover,
+.logout-box a:focus-visible {
+  background: var(
+    --button-hover-bg,
+    linear-gradient(132deg, rgba(42,217,119,0.34), rgba(118,255,101,0.26))
+  );
+  color: var(--button-hover-color, #041104);
+  border-color: var(--button-hover-border, rgba(42,217,119,0.6));
+  box-shadow: var(
+    --button-hover-shadow,
+    0 18px 36px rgba(17,123,69,0.26), inset 0 0 22px rgba(118,255,101,0.24)
+  );
+  transform: var(--button-hover-transform, translateY(-3px) scale(1.02));
+  outline: none;
 }
 
 @keyframes fadeIn {
