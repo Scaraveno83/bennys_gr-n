@@ -2,6 +2,32 @@
 document.addEventListener("DOMContentLoaded", () => {
 
   /* ------------------------------
+     HEADER OFFSET SYNCHRONISIEREN
+  ------------------------------- */
+  const headerEl = document.querySelector(".site-header");
+  const headerOffsetEl = document.querySelector(".header-offset");
+  const syncHeaderOffset = () => {
+    if (!headerEl || !headerOffsetEl) return;
+    headerOffsetEl.style.height = `${headerEl.offsetHeight}px`;
+  };
+
+  if (headerEl && headerOffsetEl) {
+    syncHeaderOffset();
+    window.addEventListener("load", syncHeaderOffset);
+    window.addEventListener("resize", syncHeaderOffset);
+
+    const bannerImg = headerEl.querySelector(".brand-banner");
+    if (bannerImg && !bannerImg.complete) {
+      bannerImg.addEventListener("load", syncHeaderOffset, { once: true });
+    }
+
+    if (typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(() => syncHeaderOffset());
+      resizeObserver.observe(headerEl);
+    }
+  }
+
+  /* ------------------------------
      SECTION FADE-IN BEIM SCROLLEN
   ------------------------------- */
   const sections = document.querySelectorAll('section');
