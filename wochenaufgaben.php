@@ -137,7 +137,7 @@ $stmt = $pdo->prepare("
   ORDER BY datum DESC
 ");
 $stmt->execute([$nutzername, $zeitraumStart, $zeitraumEnde]);
-$eintraege = $stmt->fetchAll(PDO::FETCH_ASSOC)
+$eintraege = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 /* === Gesamtwerte berechnen === */
 $gesamt = array_fill_keys($produkte, 0);
@@ -198,7 +198,7 @@ $durchschnittFortschritt = $anzahlAufgaben > 0 ? (int)round($summeProzent / $anz
 <?php include 'header.php'; ?>
 
 <main class="inventory-page">
-   <header class="inventory-header">
+  <header class="inventory-header">
     <h1 class="inventory-title">📦 Meine Wochenaufgaben</h1>
     <p class="inventory-description">
       Hallo <strong><?= htmlspecialchars($nutzername) ?></strong>!<br>
@@ -241,7 +241,7 @@ $durchschnittFortschritt = $anzahlAufgaben > 0 ? (int)round($summeProzent / $anz
     </div>
   </header>
 
- <section class="inventory-section">
+   <section class="inventory-section">
     <h2>Meine Wochenziele</h2>
     <?php if ($aufgabenFortschritt): ?>
       <div class="tasks-grid">
