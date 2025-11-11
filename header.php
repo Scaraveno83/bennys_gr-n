@@ -24,7 +24,7 @@ if (!isset($pdo)) {
 $userRang = null;
 if (!empty($_SESSION['user_id'])) {
     $stmt = $pdo->prepare("
-        SELECT m.rang 
+        SELECT m.rang
         FROM mitarbeiter m
         JOIN user_accounts u ON u.mitarbeiter_id = m.id
         WHERE u.id = ?
@@ -38,7 +38,7 @@ $unreadMessages = 0;
 if (!empty($_SESSION['user_id'])) {
     try {
         $stmtMsg = $pdo->prepare("
-            SELECT COUNT(*) FROM user_messages 
+            SELECT COUNT(*) FROM user_messages
             WHERE receiver_id = ? AND is_read = 0
         ");
         $stmtMsg->execute([$_SESSION['user_id']]);
@@ -75,7 +75,7 @@ $adminErlaubteRollen = [
 ];
 ?>
 
-<header>
+<header class="site-header">
   <div class="header-inner">
     <!-- 🏁 Logo -->
     <a href="<?= $basePath ?>index.php" class="brand">
@@ -110,7 +110,7 @@ $adminErlaubteRollen = [
         <a href="<?= $basePath ?>mitarbeiter.php">👨‍🔧 Mitarbeiter</a>
         <a href="<?= $basePath ?>news_archiv.php">📰 News</a>
         <?php if (!empty($_SESSION['user_id'])): ?><a href="<?= $basePath ?>forum.php">💬 Forum</a><?php endif; ?>
-        
+
 
         <?php if (
             !empty($_SESSION['user_role']) ||
@@ -176,6 +176,7 @@ $adminErlaubteRollen = [
     </div>
   </div>
 </header>
+<div class="header-offset" aria-hidden="true"></div>
 
 <!-- Nachrichten-Liveupdate (stört Menü nicht) -->
 <script>
