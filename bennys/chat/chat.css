@@ -1,5 +1,9 @@
 /* FINAL – Bennys Chat (isoliert) */
-#bc-root, #bc-root * { box-sizing:border-box; font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif }
+#bc-root, #bc-root * {
+  box-sizing: border-box;
+  font-family: var(--inventory-font, 'Roboto', 'Segoe UI', Arial, sans-serif);
+  color: var(--text, #f5f5f5);
+}
 
 /* ⭐ Neon Chat Bubble – Benny's Style */
 #bc-bubble{
@@ -20,8 +24,10 @@
   color:white;
 
   /* Neuer Farbverlauf + Glow */
-  background:radial-gradient(circle at 30% 30%, #39ff14, #0c4416 70%);
-  border:2px solid rgba(57,255,20,0.65);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(var(--accent-rgb, 57,255,20), 0.95), rgba(var(--accent-soft-rgb, 17,123,69), 0.85) 68%),
+    linear-gradient(145deg, rgba(var(--accent-rgb, 57,255,20), 0.75), rgba(12,68,22,0.65));
+  border:2px solid rgba(var(--accent-rgb, 57,255,20),0.65);
 
   box-shadow:
     0 0 14px rgba(57,255,20,.8),
@@ -65,10 +71,16 @@
   color:#fff;
   border-radius:16px;
   overflow:hidden;
-  border:1px solid rgba(57,255,20,.35);
-  box-shadow:0 0 40px rgba(57,255,20,.45), inset 0 0 8px rgba(255,255,255,.06);
+  border:1px solid rgba(var(--accent-rgb, 57,255,20),.35);
+  box-shadow:
+    0 24px 44px rgba(0, 0, 0, 0.55),
+    0 0 40px rgba(var(--accent-rgb, 57,255,20),.28),
+    inset 0 0 8px rgba(255,255,255,.06);
   backdrop-filter: blur(8px);
-  background:linear-gradient(180deg, rgba(57,255,20,.12), rgba(0,0,0,.88) 18%);
+  background:
+    radial-gradient(circle at top, rgba(var(--accent-rgb, 57,255,20), 0.18), transparent 55%),
+    radial-gradient(circle at bottom, rgba(var(--accent-rgb, 57,255,20), 0.12), transparent 58%),
+    var(--surface-strong, #111618);
   display:none;
   opacity:0;
   pointer-events:none;
@@ -87,8 +99,8 @@
   justify-content:space-between;
   gap:12px;
   padding:12px 14px;
-  background:rgba(0,0,0,0.55);
-  border-bottom:1px solid rgba(57,255,20,0.4);
+  background:linear-gradient(132deg, rgba(var(--accent-rgb, 57,255,20), 0.22), rgba(0,0,0,0.55));
+  border-bottom:1px solid rgba(var(--accent-rgb, 57,255,20),0.4);
   backdrop-filter:blur(6px);
 }
 
@@ -210,16 +222,7 @@
   content:"";
   position:absolute;
   inset:0;
-  background:rgba(0,0,0,0.45);
-  pointer-events:none;
-  z-index:0;
-}
-
-#bc-messages::before {
-  content:"";
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,0.45); /* Abdunklung über dem Bild */
+ background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.55));
   pointer-events:none;
   z-index:0;
 }
@@ -241,8 +244,8 @@
   max-width:74%;
   padding:10px 14px;
   border-radius:12px;
-  background:rgba(255,255,255,.10);
-  border:1px solid rgba(255,255,255,.16);
+ background:var(--surface-raised, rgba(255,255,255,.10));
+  border:1px solid rgba(var(--accent-rgb, 57,255,20),0.18);
   line-height:1.35;
   margin:6px 0;
   display:inline-block;
@@ -282,9 +285,9 @@
 /* Eigene Nachricht (rechts, neongrün) */
 .bc-msg.me{
   float:right;
-  background:rgba(30,120,40,0.55);
-  border:1px solid rgba(102,255,140,1);
-  box-shadow:0 0 12px rgba(57,255,20,.45);
+  background:rgba(var(--accent-rgb, 57,255,20),0.24);
+  border:1px solid rgba(var(--accent-rgb, 57,255,20),0.65);
+  box-shadow:0 0 12px rgba(var(--accent-rgb, 57,255,20),.45);
   text-align:right;
 }
 
@@ -298,9 +301,9 @@
 }
 
 .bc-msg.mention-me .bc-content{
-  background:rgba(57,255,20,0.35);
-  border-color:rgba(150,255,180,0.85);
-  box-shadow:0 0 18px rgba(160,255,180,0.55);
+  background:rgba(var(--accent-rgb, 57,255,20),0.28);
+  border-color:rgba(var(--accent-rgb, 57,255,20),0.78);
+  box-shadow:0 0 18px rgba(var(--accent-rgb, 57,255,20),0.55)
 }
 
 .bc-msg.mention-me .bc-meta{
@@ -322,10 +325,11 @@
 .bc-meta{ font-size:11px; opacity:.75; margin-top:6px }
 
 #bc-form{ display:flex; align-items:center; gap:8px; padding:12px; flex-shrink:0; position:relative;
-  border-top:1px solid rgba(255,255,255,.12); background:linear-gradient(0deg, rgba(0,0,0,.6), rgba(57,255,20,.10));
+ border-top:1px solid rgba(var(--accent-rgb, 57,255,20),.18);
+  background:linear-gradient(0deg, rgba(0,0,0,.6), rgba(var(--accent-rgb, 57,255,20),.10));
 }
-#bc-input{ flex:1; padding:10px 14px; border-radius:10px; outline:none; border:1px solid rgba(255,255,255,.22);
-  background:rgba(255,255,255,.12); color:#fff; }
+#bc-input{ flex:1; padding:10px 14px; border-radius:10px; outline:none; border:1px solid rgba(var(--accent-rgb, 57,255,20),.25);
+  background:rgba(255,255,255,.08); color:var(--text,#fff); }
 .bc-attach, .bc-send{
   background:var(--button-bg, rgba(57,255,20,0.1));
   border:1px solid var(--button-border, rgba(57,255,20,0.35));
@@ -396,8 +400,8 @@
   max-width: calc(100% - 42px); /* Platz für Avatar */
   padding:12px 16px;
   border-radius:14px;
-  background:rgba(255,255,255,.12);
-  border:1px solid rgba(255,255,255,.18);
+  background:var(--surface-raised, rgba(255,255,255,.12));
+  border:1px solid rgba(var(--accent-rgb, 57,255,20),0.22);
   line-height:1.35;
 }
 
@@ -410,8 +414,8 @@
 }
 
 .bc-msg.me .bc-content{
-  background:rgba(57,255,20,0.35);
-  border-color:rgba(122,255,150,.9);
+  background:rgba(var(--accent-rgb, 57,255,20),0.28);
+  border-color:rgba(var(--accent-rgb, 57,255,20),0.78);
   text-align:right;
 }
 @keyframes msg-in{
@@ -419,16 +423,6 @@
   to   { opacity:1; transform:translateY(0); }
 }
 /* --- Header Layout Optimierung --- */
-.bc-head {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:12px 16px;
-  font-weight:700;
-  background:rgba(57,255,20,.18);
-  border-bottom:1px solid rgba(57,255,20,.28);
-}
-
 .bc-actions {
   display:flex;
   align-items:center;
@@ -437,8 +431,8 @@
 
 /* --- Sound Button Redesign --- */
 #bc-sound {
-  background:rgba(57,255,20,0.22);
-  border:1px solid rgba(122,255,150,0.55);
+  background:rgba(var(--accent-rgb, 57,255,20),0.22);
+  border:1px solid rgba(var(--accent-rgb, 57,255,20),0.55);
   border-radius:8px;
   padding:1px 1px;
   font-size:18px;
@@ -453,9 +447,9 @@
 
 /* Hover */
 #bc-sound:hover {
-  background:rgba(57,255,20,.35);
+  background:rgba(var(--accent-rgb, 57,255,20),.35);
   transform:scale(1.12);
-  box-shadow:0 0 14px rgba(57,255,20,.9), inset 0 0 6px rgba(255,255,255,.25);
+  box-shadow:0 0 14px rgba(var(--accent-rgb, 57,255,20),.9), inset 0 0 6px rgba(255,255,255,.25);
 }
 
 /* Klick-Press */
@@ -489,7 +483,7 @@
   transition:.25s;
 }
 #bc-close:hover {
-  color:#8eff9d;
+  color:rgba(var(--accent-rgb, 57,255,20),0.85);
   transform:scale(1.2);
 }
 .bc-sound-btn.muted {
