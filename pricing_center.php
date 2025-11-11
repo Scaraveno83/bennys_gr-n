@@ -266,33 +266,73 @@ tabButtons.forEach((button) => {
   });
 });
 
-document.querySelectorAll('.pricing-partner__header').forEach((header) => {
-  const partner = header.closest('.pricing-partner');
+const partnerContainer = document.getElementById('tab-partners');
+const initPartnerAccordion = (partner) => {
+  if (!partner || partner.dataset.accordionInitialized === 'true') return;
+  const header = partner.querySelector('.pricing-partner__header');
+  if (!header) return;
+
   const controlledId = header.getAttribute('aria-controls');
-  let body = null;
+  const body = controlledId
+    ? document.getElementById(controlledId)
+    : partner.querySelector('.pricing-partner__body');
 
-  if (controlledId) {
-    body = document.getElementById(controlledId);
-  } else if (partner) {
-    body = partner.querySelector('.pricing-partner__body');
-  }
+  if (!body) return;
 
-  if (!partner || !body) return;
+  const applyState = (open) => {
+    const isOpen = Boolean(open);
+    partner.classList.toggle('is-open', isOpen);
+    header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 
-  const setPartnerState = (open) => {
-    partner.classList.toggle('is-open', open);
-    header.setAttribute('aria-expanded', open ? 'true' : 'false');
-    body.hidden = !open;
+    if (isOpen) {
+      body.removeAttribute('hidden');
+      body.hidden = false;
+      body.style.display = 'grid';
+    } else {
+      body.setAttribute('hidden', '');
+      body.hidden = true;
+      body.style.display = 'none';
+    }
   };
 
-  const isInitiallyOpen = header.getAttribute('aria-expanded') === 'true' && !body.hasAttribute('hidden');
-  setPartnerState(isInitiallyOpen);
+  const defaultOpen =
+    partner.classList.contains('is-open') ||
+    header.getAttribute('aria-expanded') === 'true' ||
+    !body.hasAttribute('hidden');
+
+  applyState(defaultOpen);
 
   header.addEventListener('click', () => {
     const willOpen = header.getAttribute('aria-expanded') !== 'true';
-    setPartnerState(willOpen);
+    applyState(willOpen);
   });
-});
+
+  partner.dataset.accordionInitialized = 'true';
+};
+
+if (partnerContainer) {
+  const partners = partnerContainer.querySelectorAll('.pricing-partner');
+  partners.forEach(initPartnerAccordion);
+
+  if ('MutationObserver' in window) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+
+          if (node.classList.contains('pricing-partner')) {
+            initPartnerAccordion(node);
+            return;
+          }
+
+          node.querySelectorAll?.('.pricing-partner').forEach(initPartnerAccordion);
+        });
+      });
+    });
+
+    observer.observe(partnerContainer, { childList: true, subtree: true });
+  }
+}
 
 document.querySelectorAll('.pricing-vehicles__toggle').forEach((toggle) => {
   toggle.addEventListener('click', () => {
