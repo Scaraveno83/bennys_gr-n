@@ -22,7 +22,7 @@ $zeitraumEnde = $wochenzeitraum['end_datetime'];
 if (isset($_GET['archive'])) {␊
   $stmt = $pdo->prepare("SELECT * FROM wochenaufgaben WHERE YEARWEEK(datum, 1) < YEARWEEK(CURDATE(), 1)");␊
   $stmt->execute();␊
-  $alte = $stmt->fetchAll(PDO::FETCH_ASSOC);
+  $alte = $stmt->fetchAll(PDO::FETCH_ASSOC)
 
   if ($alte) {
     $archiv = $pdo->prepare("INSERT INTO wochenaufgaben_archiv (mitarbeiter, produkt, menge, datum, kalenderwoche)
@@ -235,7 +235,7 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
 <?php include '../header.php'; ?>
 
 <main class="inventory-page admin-inventory-page">
- <header class="inventory-header">
+  <header class="inventory-header">
     <h1 class="inventory-title">📦 Wochenaufgaben verwalten</h1>
     <p class="inventory-description">
       Koordiniere Aufgaben, Produktionsziele und Lagerabgaben für jede Woche. Alle Änderungen werden live im Team-Dashboard angezeigt.
@@ -402,7 +402,7 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
     <h2>Wochenstatistik</h2>␊
     <p class="inventory-section__intro">␊
       Zeitraum: <?= date('d.m.Y', strtotime($wochenzeitraum['start_date'])) ?> – <?= date('d.m.Y', strtotime($wochenzeitraum['end_date'])) ?>
-    </p>
+    </p>␊
     <?php if (!empty($statistik)): ?>
       <div class="table-wrap">
         <table class="data-table weekly-table">
@@ -429,9 +429,9 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
     <?php else: ?>␊
       <p class="inventory-section__intro">Keine Buchungen für KW <?= htmlspecialchars(substr($selectedWeek, -2)) ?>.</p>
     <?php endif; ?>␊
-  </section>
+  </section>␊
 
-   <section class="inventory-section">
+    <section class="inventory-section">
       <h2>Neuen Eintrag erstellen</h2>
       <form method="post" action="?week=<?= urlencode($selectedWeek) ?>" class="inventory-form weekly-grid">
       <input type="hidden" name="add" value="1">
@@ -507,7 +507,7 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
                     <input type="hidden" name="edit_id" value="<?= $e['id'] ?>">
                     <button type="submit" class="inventory-submit inventory-submit--small">💾</button>
                     <a class="inventory-submit inventory-submit--ghost inventory-submit--small" href="?delete=<?= $e['id'] ?>&amp;week=<?= urlencode($selectedWeek) ?>"
-                       onclick="return confirm('Eintrag wirklich löschen?')">🗑️</a>␊
+                       onclick="return confirm('Eintrag wirklich löschen?')">🗑️</a>␊>
                   </td>
                 </form>
               </tr>
@@ -515,10 +515,10 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
           </tbody>
         </table>
       </div>
-     <?php else: ?>␊
+   <?php else: ?>␊
       <p class="inventory-section__intro">Keine Einträge für KW <?= htmlspecialchars(substr($selectedWeek, -2)) ?> gefunden.</p>
     <?php endif; ?>␊
-  </section>
+  </section>␊
 
   <section class="inventory-section">
     <h2>Schnellzugriff</h2>
