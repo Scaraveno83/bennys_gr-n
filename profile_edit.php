@@ -40,6 +40,60 @@ if (isset($_POST['beschreibung'])) {
 $bild = (!empty($me['bild_url']) && file_exists($me['bild_url']))
     ? $me['bild_url']
     : 'pics/default-avatar.png';
+
+    $skillsList = [];
+if (!empty($me['skills'])) {
+    $skillsList = array_filter(array_map('trim', preg_split('/[,;\n]+/', $me['skills'])));
+}
+
+$metrics = [];
+$metrics[] = [
+    'label' => 'Rang',
+    'value' => $me['rang'] ?: 'Unbekannt',
+    'hint'  => 'aktueller Dienstgrad',
+];
+
+if (!empty($me['status'])) {
+    $metrics[] = [
+        'label' => 'Status',
+        'value' => $me['status'],
+        'hint'  => 'Teamstatus',
+    ];
+}
+
+if (!empty($skillsList)) {
+    $metrics[] = [
+        'label' => 'Kompetenzen',
+        'value' => count($skillsList),
+        'hint'  => 'aus dem Profil ersichtlich',
+    ];
+}
+
+if (!empty($me['phone'])) {
+    $metrics[] = [
+        'label' => 'Telefon',
+        'value' => $me['phone'],
+        'hint'  => 'direkte Durchwahl',
+    ];
+}
+
+$rang_icons = [
+    "Geschäftsführung"        => "gf.png",
+    "Stv. Geschäftsleitung"   => "stv_leitung.png",
+    "Personalleitung"         => "personalleitung.png",
+    "Ausbilder/in"            => "ausbilder.png",
+    "Tuner/in"                => "tuner.png",
+    "Meister/in"              => "meister.png",
+    "Mechaniker/in"           => "mechaniker.png",
+    "Geselle/Gesellin"        => "geselle.png",
+    "Azubi 3.Jahr"            => "azubi3.png",
+    "Azubi 2.Jahr"            => "azubi2.png",
+    "Azubi 1.Jahr"            => "azubi1.png",
+    "Praktikant/in"           => "praktikant.png",
+    "Administrator"           => "admin.png"
+];
+
+$icon = isset($rang_icons[$me['rang']]) ? "pics/icons/" . $rang_icons[$me['rang']] : null;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -53,36 +107,98 @@ $bild = (!empty($me['bild_url']) && file_exists($me['bild_url']))
 <body>
 <?php include 'header.php'; ?>
 
-<div class="profile-card" style="text-align:left;">
-  <img src="<?= htmlspecialchars($bild) ?>" class="profile-avatar" alt="Profilbild" style="display:block;margin:0 auto;">
-  <br>
+<main class="inventory-page profile-page profile-edit-page">
+  <header class="inventory-header profile-header">
+    <div class="profile-header__avatar">
+      <img src="<?= htmlspecialchars($bild) ?>" class="profile-avatar" alt="Aktuelles Profilbild">
+      <span class="profile-edit-hint">PNG oder JPG, idealerweise 800×800 px</span>
+    </div>
+    <div class="profile-header__content">
+      <h1 class="inventory-title">🛠️ Profil bearbeiten</h1>
+      <p class="inventory-description">Halte deine Kontaktdaten und Kompetenzen für das Team auf dem neuesten Stand.</p>
+      <p class="inventory-info">Angemeldet als <?= htmlspecialchars($me['username']) ?></p>
 
-  <form action="upload_avatar.php" method="post" enctype="multipart/form-data">
-    <label>Profilbild ändern:</label>
-    <input type="file" name="avatar" accept="image/*" class="form-dark">
-    <button type="submit" class="button-primary button-main">Bild hochladen</button>
-  </form>
+      <div class="profile-rank">
+        <?php if ($icon && file_exists($icon)): ?>
+          <img src="<?= htmlspecialchars($icon) ?>" alt="Rang" class="profile-rank__icon">
+        <?php endif; ?>
+        <span class="profile-rank__title"><?= htmlspecialchars($me['rang'] ?: 'Unbekannter Rang') ?></span>
+      </div>
 
-  <form action="profile_edit.php" method="post" class="form-dark">
-    <label>Beschreibung:</label>
-    <textarea name="beschreibung" rows="4"><?= htmlspecialchars($me['beschreibung']) ?></textarea>
+      <?php if (!empty($metrics)): ?>
+        <div class="inventory-metrics profile-metrics">
+          <?php foreach ($metrics as $metric): ?>
+            <div class="inventory-metric">
+              <span class="inventory-metric__label"><?= htmlspecialchars($metric['label']) ?></span>
+              <span class="inventory-metric__value"><?= htmlspecialchars($metric['value']) ?></span>
+              <?php if (!empty($metric['hint'])): ?>
+                <span class="inventory-metric__hint"><?= htmlspecialchars($metric['hint']) ?></span>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </header>
 
-    <label>Skills:</label>
-    <input type="text" name="skills" value="<?= htmlspecialchars($me['skills']) ?>">
+  <section class="inventory-section profile-edit-avatar">
+    <h2>Profilbild aktualisieren</h2>
+    <p class="inventory-section__intro">Zeig dem Team, wer hinter den Werkzeugen steckt.</p>
+    <div class="profile-edit-avatar-grid">
+      <div class="profile-edit-avatar-preview">
+        <img src="<?= htmlspecialchars($bild) ?>" class="profile-avatar" alt="Aktuelles Profilbild">
+        <span class="profile-edit-hint">Aktuelle Vorschau</span>
+      </div>
+      <form action="upload_avatar.php" method="post" enctype="multipart/form-data" class="inventory-form profile-avatar-form">
+        <div class="input-control">
+          <label for="avatar">Neues Profilbild</label>
+          <input type="file" id="avatar" name="avatar" accept="image/*" class="profile-avatar-input">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="inventory-submit">Bild hochladen</button>
+        </div>
+      </form>
+    </div>
+  </section>
 
-    <label>Status:</label>
-    <input type="text" name="status" value="<?= htmlspecialchars($me['status']) ?>">
+  <section class="inventory-section profile-edit-details">
+    <h2>Stammdaten &amp; Kontakt</h2>
+    <p class="inventory-section__intro">Diese Angaben werden in deinem internen Teamprofil angezeigt.</p>
+    <form action="profile_edit.php" method="post" class="inventory-form">
+      <div class="form-grid two-column">
+        <div class="input-control input-control--full">
+          <label for="beschreibung">Beschreibung</label>
+          <textarea id="beschreibung" name="beschreibung" rows="4"><?= htmlspecialchars($me['beschreibung']) ?></textarea>
+        </div>
 
-    <label>Telefon:</label>
-    <input type="text" name="phone" value="<?= htmlspecialchars($me['phone']) ?>">
+    <div class="input-control input-control--full">
+          <label for="skills">Skills</label>
+          <input type="text" id="skills" name="skills" class="input-field" value="<?= htmlspecialchars($me['skills']) ?>" placeholder="z. B. Karosserie, Diagnose, Kundenservice">
+        </div>
 
-    <label>E-Mail:</label>
-    <input type="email" name="email" value="<?= htmlspecialchars($me['email']) ?>">
+    <div class="input-control">
+          <label for="status">Status</label>
+          <input type="text" id="status" name="status" class="input-field" value="<?= htmlspecialchars($me['status']) ?>">
+        </div>
 
-    <button type="submit" class="button-main">💾 Speichern</button>
-    <a href="profile.php" class="button-sec" style="margin-left:10px;">Zurück</a>
-  </form>
-</div>
+    <div class="input-control">
+          <label for="phone">Telefon</label>
+          <input type="text" id="phone" name="phone" class="input-field" value="<?= htmlspecialchars($me['phone']) ?>">
+        </div>
 
+    <div class="input-control">
+          <label for="email">E-Mail</label>
+          <input type="email" id="email" name="email" class="input-field" value="<?= htmlspecialchars($me['email']) ?>">
+        </div>
+      </div>
+
+    <div class="form-actions">
+        <button type="submit" class="inventory-submit">💾 Änderungen speichern</button>
+        <a href="profile.php?id=<?= (int)$me['id'] ?>" class="inventory-submit inventory-submit--ghost">Zurück zur Profilansicht</a>
+      </div>
+    </form>
+  </section>
+</main>
+<script src="script.js"></script>
 </body>
 </html>
