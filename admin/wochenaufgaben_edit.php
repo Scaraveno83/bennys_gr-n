@@ -2,6 +2,7 @@
 session_start();
 require_once '../includes/db.php';
 require_once '../includes/admin_access.php';
+require_once '../includes/wochenaufgaben_helpers.php';
 
 /* === Produkte === */
 $produkte = ['Öl', 'Fasern', 'Stoff', 'Eisenbarren', 'Eisenerz'];
@@ -10,10 +11,17 @@ $produkte = ['Öl', 'Fasern', 'Stoff', 'Eisenbarren', 'Eisenerz'];
 $stmt_mitarbeiter = $pdo->query("SELECT name FROM mitarbeiter ORDER BY name ASC");
 $mitarbeiter_liste = $stmt_mitarbeiter->fetchAll(PDO::FETCH_COLUMN);
 
+ensureWochenaufgabenPlanTable($pdo);
+
+$selectedWeek = normalizeKalenderwoche($_GET['week'] ?? null);
+$wochenzeitraum = getWeekPeriod($selectedWeek);
+$zeitraumStart = $wochenzeitraum['start_datetime'];
+$zeitraumEnde = $wochenzeitraum['end_datetime'];
+
 /* === Archivierung manuell anstoßen === */
-if (isset($_GET['archive'])) {
-  $stmt = $pdo->prepare("SELECT * FROM wochenaufgaben WHERE YEARWEEK(datum, 1) < YEARWEEK(CURDATE(), 1)");
-  $stmt->execute();
+if (isset($_GET['archive'])) {␊
+  $stmt = $pdo->prepare("SELECT * FROM wochenaufgaben WHERE YEARWEEK(datum, 1) < YEARWEEK(CURDATE(), 1)");␊
+  $stmt->execute();␊
   $alte = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
   if ($alte) {
@@ -30,16 +38,24 @@ if (isset($_GET['archive'])) {
       ]);
       $del->execute([$row['id']]);
     }
-  }
-  header("Location: wochenaufgaben_edit.php?archived=1");
-  exit;
-}
+  }␊
+  header("Location: wochenaufgaben_edit.php?archived=1&week=" . urlencode($selectedWeek));
+  exit;␊
+}␊
 
 /* === LÖSCHEN === */
 if (isset($_GET['delete'])) {
   $id = (int)$_GET['delete'];
   $pdo->prepare("DELETE FROM wochenaufgaben WHERE id = ?")->execute([$id]);
-  header("Location: wochenaufgaben_edit.php");
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($selectedWeek));
+  exit;
+}
+
+/* === PLANUNG: AUFGABE LÖSCHEN === */
+if (isset($_GET['delete_task'])) {
+  $taskId = (int)$_GET['delete_task'];
+  $pdo->prepare("DELETE FROM wochenaufgaben_plan WHERE id = ?")->execute([$taskId]);
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($selectedWeek));
   exit;
 }
 
@@ -51,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
     trim($_POST['produkt']),
     intval($_POST['menge'])
   ]);
-  header("Location: wochenaufgaben_edit.php");
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($selectedWeek));
   exit;
 }
 
@@ -64,23 +80,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
     intval($_POST['menge']),
     (int)$_POST['edit_id']
   ]);
-  header("Location: wochenaufgaben_edit.php");
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($selectedWeek));
   exit;
 }
 
-/* === EINTRÄGE LADEN === */
-$eintraege = $pdo->query("SELECT * FROM wochenaufgaben ORDER BY datum DESC")->fetchAll(PDO::FETCH_ASSOC);
+/* === PLANUNG: AUFGABE HINZUFÜGEN === */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_task'])) {
+  $planWeek = normalizeKalenderwoche($_POST['kalenderwoche'] ?? $selectedWeek, $selectedWeek);
+  $mitarbeiter = trim($_POST['mitarbeiter']);
+  $produkt = trim($_POST['produkt']);
+  $zielmenge = max(0, (int)$_POST['zielmenge']);
+
+  if ($mitarbeiter !== '' && $produkt !== '' && $zielmenge > 0) {
+    $stmt = $pdo->prepare("INSERT INTO wochenaufgaben_plan (mitarbeiter, produkt, zielmenge, kalenderwoche) VALUES (?, ?, ?, ?)");
+    $stmt->execute([$mitarbeiter, $produkt, $zielmenge, $planWeek]);
+  }
+
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($planWeek));
+  exit;
+}
+
+/* === PLANUNG: AUFGABE AKTUALISIEREN === */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_task_id'])) {
+  $planWeek = normalizeKalenderwoche($_POST['kalenderwoche'] ?? $selectedWeek, $selectedWeek);
+  $mitarbeiter = trim($_POST['mitarbeiter']);
+  $produkt = trim($_POST['produkt']);
+  $zielmenge = max(0, (int)$_POST['zielmenge']);
+  $taskId = (int)$_POST['edit_task_id'];
+
+  if ($taskId > 0 && $mitarbeiter !== '' && $produkt !== '' && $zielmenge > 0) {
+    $stmt = $pdo->prepare("UPDATE wochenaufgaben_plan SET mitarbeiter=?, produkt=?, zielmenge=?, kalenderwoche=? WHERE id=?");
+    $stmt->execute([$mitarbeiter, $produkt, $zielmenge, $planWeek, $taskId]);
+  }
+
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($planWeek));
+  exit;
+}
+
+/* === EINTRÄGE LADEN (selektierte Woche) === */
+$stmtEintraege = $pdo->prepare("SELECT * FROM wochenaufgaben WHERE datum BETWEEN ? AND ? ORDER BY datum DESC");
+$stmtEintraege->execute([$zeitraumStart, $zeitraumEnde]);
+$eintraege = $stmtEintraege->fetchAll(PDO::FETCH_ASSOC);
 
 /* === Statistik === */
-$montag = date('Y-m-d', strtotime('monday this week'));
-$sonntag = date('Y-m-d 23:59:59', strtotime('sunday this week'));
-
 $stmt = $pdo->prepare("SELECT mitarbeiter, produkt, SUM(menge) as summe
                        FROM wochenaufgaben
                        WHERE datum BETWEEN ? AND ?
                        GROUP BY mitarbeiter, produkt
                        ORDER BY mitarbeiter");
-$stmt->execute([$montag, $sonntag]);
+$stmt->execute([$zeitraumStart, $zeitraumEnde]);
 $daten = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $statistik = [];
@@ -99,6 +147,47 @@ foreach ($daten as $row) {
 $anzahlEintraege = count($eintraege);
 $gesamtMenge = array_sum(array_map(static fn($entry) => (int)$entry['menge'], $eintraege));
 $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
+
+/* === Aufgabenplanung laden === */
+$stmtPlan = $pdo->prepare("SELECT * FROM wochenaufgaben_plan WHERE kalenderwoche = ? ORDER BY mitarbeiter, produkt");
+$stmtPlan->execute([$selectedWeek]);
+$geplanteAufgaben = $stmtPlan->fetchAll(PDO::FETCH_ASSOC);
+
+$leistungen = [];
+foreach ($daten as $row) {
+  $leistungen[$row['mitarbeiter']][$row['produkt']] = (int)$row['summe'];
+}
+
+$geplanteAufgabenGruppiert = [];
+$geplanteAufgabenMitFortschritt = [];
+$erledigteAufgaben = 0;
+$summeFortschrittGeplant = 0;
+foreach ($geplanteAufgaben as $aufgabe) {
+  $mitarbeiter = $aufgabe['mitarbeiter'];
+  $produkt = $aufgabe['produkt'];
+  $ziel = (int)$aufgabe['zielmenge'];
+  $erreicht = $leistungen[$mitarbeiter][$produkt] ?? 0;
+  $prozent = $ziel > 0 ? (int)round(min(100, ($erreicht / $ziel) * 100)) : ($erreicht > 0 ? 100 : 0);
+  $aufgabeMitFortschritt = [
+    'id' => $aufgabe['id'],
+    'mitarbeiter' => $mitarbeiter,
+    'produkt' => $produkt,
+    'ziel' => $ziel,
+    'erreicht' => $erreicht,
+    'prozent' => $prozent,
+    'erledigt' => $ziel > 0 ? $erreicht >= $ziel : $erreicht > 0,
+    'kalenderwoche' => $aufgabe['kalenderwoche'],
+  ];
+  $geplanteAufgabenMitFortschritt[] = $aufgabeMitFortschritt;
+  $geplanteAufgabenGruppiert[$mitarbeiter][] = $aufgabeMitFortschritt;
+  $summeFortschrittGeplant += $prozent;
+  if ($ziel > 0 ? $erreicht >= $ziel : $erreicht > 0) {
+    $erledigteAufgaben++;
+  }
+}
+
+$anzahlGeplanteAufgaben = count($geplanteAufgaben);
+$durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summeFortschrittGeplant / $anzahlGeplanteAufgaben) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -146,10 +235,14 @@ $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
 <?php include '../header.php'; ?>
 
 <main class="inventory-page admin-inventory-page">
-  <header class="inventory-header">
+ <header class="inventory-header">
     <h1 class="inventory-title">📦 Wochenaufgaben verwalten</h1>
     <p class="inventory-description">
       Koordiniere Aufgaben, Produktionsziele und Lagerabgaben für jede Woche. Alle Änderungen werden live im Team-Dashboard angezeigt.
+    </p>
+    <p class="inventory-info">
+      Aktive Kalenderwoche: KW <?= htmlspecialchars(substr($selectedWeek, -2)) ?>
+      (<?= date('d.m.', strtotime($wochenzeitraum['start_date'])) ?> – <?= date('d.m.Y', strtotime($wochenzeitraum['end_date'])) ?>)
     </p>
     <p class="inventory-info">
       Letzte Aktualisierung:
@@ -172,6 +265,11 @@ $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
         <span class="inventory-metric__value"><?= count($produkte) ?></span>
         <span class="inventory-metric__hint">definierte Ressourcen</span>
       </article>
+      <article class="inventory-metric">
+        <span class="inventory-metric__label">Geplante Aufgaben</span>
+        <span class="inventory-metric__value"><?= number_format($anzahlGeplanteAufgaben, 0, ',', '.') ?></span>
+        <span class="inventory-metric__hint"><?= $erledigteAufgaben ?> erledigt · Ø <?= $durchschnittFortschrittGeplant ?>%</span>
+      </article>
     </div>
   </header>
 
@@ -187,15 +285,123 @@ $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
   <section class="inventory-section">
     <h2>Schnellaktionen</h2>
     <div class="weekly-actions">
-      <a href="?archive=1" class="inventory-submit inventory-submit--ghost">📁 Alte Wochen archivieren</a>
+      <a href="?archive=1&amp;week=<?= urlencode($selectedWeek) ?>" class="inventory-submit inventory-submit--ghost">📁 Alte Wochen archivieren</a>
       <a href="wochenaufgaben_archiv_edit.php" class="inventory-submit inventory-submit--ghost">📚 Archiv ansehen</a>
     </div>
   </section>
 
   <section class="inventory-section">
-    <h2>Wochenstatistik</h2>
+    <h2>Kalenderwoche wechseln</h2>
+    <form method="get" class="inventory-form weekly-grid">
+      <div class="input-control">
+        <label for="week">Kalenderwoche</label>
+        <input id="week" type="week" name="week" value="<?= htmlspecialchars($selectedWeek) ?>" required>
+      </div>
+      <div class="form-actions" style="align-self:end;">
+        <button type="submit" class="inventory-submit">🔄 Woche anzeigen</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Aufgabenplanung</h2>
     <p class="inventory-section__intro">
-      Zeitraum: <?= date('d.m.Y', strtotime($montag)) ?> – <?= date('d.m.Y', strtotime($sonntag)) ?>
+      Weise Mitarbeitenden individuelle Wochenziele zu. Die Fortschritte aktualisieren sich automatisch anhand der gebuchten Mengen.
+    </p>
+    <form method="post" action="?week=<?= urlencode($selectedWeek) ?>" class="inventory-form weekly-grid">
+      <input type="hidden" name="add_task" value="1">
+      <input type="hidden" name="kalenderwoche" value="<?= htmlspecialchars($selectedWeek) ?>">
+
+      <div class="input-control">
+        <label for="task_mitarbeiter">Mitarbeiter:in</label>
+        <select id="task_mitarbeiter" name="mitarbeiter" class="inventory-select" required>
+          <option value="">– Mitarbeiter wählen –</option>
+          <?php foreach ($mitarbeiter_liste as $m): ?>
+            <option value="<?= htmlspecialchars($m) ?>"><?= htmlspecialchars($m) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="input-control">
+        <label for="task_produkt">Produkt</label>
+        <select id="task_produkt" name="produkt" class="inventory-select" required>
+          <option value="">– Produkt wählen –</option>
+          <?php foreach ($produkte as $p): ?>
+            <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="input-control">
+        <label for="task_ziel">Zielmenge</label>
+        <input id="task_ziel" class="input-field" type="number" name="zielmenge" min="1" placeholder="z. B. 150" required>
+      </div>
+
+      <div class="form-actions" style="align-self:end;">
+        <button type="submit" class="inventory-submit">+ Aufgabe hinzufügen</button>
+      </div>
+    </form>
+
+    <?php if ($geplanteAufgabenMitFortschritt): ?>
+      <div class="table-wrap">
+        <table class="data-table weekly-table">
+          <thead>
+            <tr>
+              <th>Mitarbeiter</th>
+              <th>Produkt</th>
+              <th>Ziel</th>
+              <th>Erreicht</th>
+              <th>Fortschritt</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($geplanteAufgabenMitFortschritt as $aufgabe): ?>
+              <tr class="<?= $aufgabe['erledigt'] ? 'table-row--success' : '' ?>">
+                <form method="post" action="?week=<?= urlencode($selectedWeek) ?>" class="weekly-edit-form">
+                  <td>
+                    <select name="mitarbeiter" required>
+                      <?php foreach ($mitarbeiter_liste as $m): ?>
+                        <option value="<?= htmlspecialchars($m) ?>" <?= ($aufgabe['mitarbeiter'] === $m) ? 'selected' : '' ?>><?= htmlspecialchars($m) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </td>
+                  <td>
+                    <select name="produkt" required>
+                      <?php foreach ($produkte as $p): ?>
+                        <option value="<?= htmlspecialchars($p) ?>" <?= ($aufgabe['produkt'] === $p) ? 'selected' : '' ?>><?= htmlspecialchars($p) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </td>
+                  <td><input type="number" name="zielmenge" value="<?= (int)$aufgabe['ziel'] ?>" min="1" required></td>
+                  <td><strong><?= (int)$aufgabe['erreicht'] ?></strong></td>
+                  <td style="min-width:160px;">
+                    <div class="task-progress">
+                      <div class="task-progress__bar" style="width: <?= max(0, min(100, $aufgabe['prozent'])) ?>%"></div>
+                    </div>
+                    <small><?= $aufgabe['prozent'] ?>%</small>
+                  </td>
+                  <td class="weekly-actions">
+                    <input type="hidden" name="edit_task_id" value="<?= $aufgabe['id'] ?>">
+                    <input type="hidden" name="kalenderwoche" value="<?= htmlspecialchars($selectedWeek) ?>">
+                    <button type="submit" class="inventory-submit inventory-submit--small">💾</button>
+                    <a class="inventory-submit inventory-submit--ghost inventory-submit--small" href="?delete_task=<?= $aufgabe['id'] ?>&amp;week=<?= urlencode($selectedWeek) ?>" onclick="return confirm('Aufgabe wirklich löschen?');">🗑️</a>
+                  </td>
+                </form>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php else: ?>
+      <p class="inventory-section__intro">Noch keine Aufgaben für KW <?= htmlspecialchars(substr($selectedWeek, -2)) ?> geplant.</p>
+    <?php endif; ?>
+  </section>
+
+  <section class="inventory-section">␊
+    <h2>Wochenstatistik</h2>␊
+    <p class="inventory-section__intro">␊
+      Zeitraum: <?= date('d.m.Y', strtotime($wochenzeitraum['start_date'])) ?> – <?= date('d.m.Y', strtotime($wochenzeitraum['end_date'])) ?>
     </p>
     <?php if (!empty($statistik)): ?>
       <div class="table-wrap">
@@ -220,14 +426,14 @@ $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
           </tbody>
         </table>
       </div>
-    <?php else: ?>
-      <p class="inventory-section__intro">Keine Daten für die laufende Woche.</p>
-    <?php endif; ?>
+    <?php else: ?>␊
+      <p class="inventory-section__intro">Keine Buchungen für KW <?= htmlspecialchars(substr($selectedWeek, -2)) ?>.</p>
+    <?php endif; ?>␊
   </section>
 
-  <section class="inventory-section">
-    <h2>Neuen Eintrag erstellen</h2>
-    <form method="post" class="inventory-form weekly-grid">
+   <section class="inventory-section">
+      <h2>Neuen Eintrag erstellen</h2>
+      <form method="post" action="?week=<?= urlencode($selectedWeek) ?>" class="inventory-form weekly-grid">
       <input type="hidden" name="add" value="1">
 
       <div class="input-control">
@@ -278,8 +484,8 @@ $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
           </thead>
           <tbody>
             <?php foreach ($eintraege as $e): ?>
-              <tr>
-                <form method="post" class="weekly-edit-form">
+              <tr>␊
+                <form method="post" action="?week=<?= urlencode($selectedWeek) ?>" class="weekly-edit-form">
                   <td><?= $e['id'] ?></td>
                   <td>
                     <select name="mitarbeiter" required>
@@ -300,8 +506,8 @@ $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
                   <td class="weekly-actions">
                     <input type="hidden" name="edit_id" value="<?= $e['id'] ?>">
                     <button type="submit" class="inventory-submit inventory-submit--small">💾</button>
-                    <a class="inventory-submit inventory-submit--ghost inventory-submit--small" href="?delete=<?= $e['id'] ?>"
-                       onclick="return confirm('Eintrag wirklich löschen?')">🗑️</a>
+                    <a class="inventory-submit inventory-submit--ghost inventory-submit--small" href="?delete=<?= $e['id'] ?>&amp;week=<?= urlencode($selectedWeek) ?>"
+                       onclick="return confirm('Eintrag wirklich löschen?')">🗑️</a>␊
                   </td>
                 </form>
               </tr>
@@ -309,9 +515,9 @@ $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
           </tbody>
         </table>
       </div>
-    <?php else: ?>
-      <p class="inventory-section__intro">Keine Einträge vorhanden.</p>
-    <?php endif; ?>
+     <?php else: ?>␊
+      <p class="inventory-section__intro">Keine Einträge für KW <?= htmlspecialchars(substr($selectedWeek, -2)) ?> gefunden.</p>
+    <?php endif; ?>␊
   </section>
 
   <section class="inventory-section">
