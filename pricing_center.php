@@ -151,8 +151,9 @@ $publicMarkup = (float)($base['tuning_markup_public'] ?? 0);
         $cars = $carsStmt->fetchAll(PDO::FETCH_ASSOC);
       ?>
 
+      <?php $bodyId = 'partner-' . $p['id'] . '-body'; ?>
       <article class="pricing-partner">
-        <button class="pricing-partner__header" type="button">
+        <button class="pricing-partner__header" type="button" aria-expanded="false" aria-controls="<?= $bodyId ?>">
           <div class="pricing-partner__identity">
             <?php if(!empty($p['logo_url'])): ?>
               <img src="<?= htmlspecialchars($p['logo_url']) ?>" class="pricing-partner__logo" alt="Logo von <?= htmlspecialchars($p['name']) ?>">
@@ -165,7 +166,7 @@ $publicMarkup = (float)($base['tuning_markup_public'] ?? 0);
           <span class="pricing-partner__toggle" aria-hidden="true"></span>
         </button>
 
-        <div class="pricing-partner__body" hidden>
+        <div id="<?= $bodyId ?>" class="pricing-partner__body" hidden>
           <?php if(!empty($p['remarks'])): ?>
             <p class="pricing-partner__remarks"><?= nl2br(htmlspecialchars($p['remarks'])) ?></p>
           <?php endif; ?>
@@ -266,11 +267,30 @@ tabButtons.forEach((button) => {
 });
 
 document.querySelectorAll('.pricing-partner__header').forEach((header) => {
+  const partner = header.closest('.pricing-partner');
+  const controlledId = header.getAttribute('aria-controls');
+  let body = null;
+
+  if (controlledId) {
+    body = document.getElementById(controlledId);
+  } else if (partner) {
+    body = partner.querySelector('.pricing-partner__body');
+  }
+
+  if (!partner || !body) return;
+
+  const setPartnerState = (open) => {
+    partner.classList.toggle('is-open', open);
+    header.setAttribute('aria-expanded', open ? 'true' : 'false');
+    body.hidden = !open;
+  };
+
+  const isInitiallyOpen = header.getAttribute('aria-expanded') === 'true' && !body.hasAttribute('hidden');
+  setPartnerState(isInitiallyOpen);
+
   header.addEventListener('click', () => {
-    const partner = header.closest('.pricing-partner');
-    const body = partner.querySelector('.pricing-partner__body');
-    const isOpen = partner.classList.toggle('is-open');
-    setVisibility(body, isOpen);
+    const willOpen = header.getAttribute('aria-expanded') !== 'true';
+    setPartnerState(willOpen);
   });
 });
 
