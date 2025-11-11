@@ -202,30 +202,38 @@ if (isAdmin) {
       justify-content: center;
       gap: 10px;
     }
-    .btn-primary {
-      background: linear-gradient(90deg,#39ff14,#76ff65);
-      color: #fff;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 10px;
-      font-weight: bold;
+    .btn-primary,
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 12px;
+      border: 1px solid var(--button-border, rgba(57,255,20,0.35));
+      background: var(--button-bg, rgba(57,255,20,0.1));
+      color: var(--button-color, rgba(210,255,215,0.9));
+      font-weight: 700;
       text-decoration: none;
       cursor: pointer;
-      box-shadow: 0 0 12px rgba(57,255,20,.45);
-      transition: transform .2s ease;
+      transition: var(--transition, all 0.25s ease);
     }
-    .btn-ghost {
-      background: rgba(57,255,20,0.1);
-      border: 1px solid rgba(57,255,20,0.4);
-      color: #a8ffba;
-      border-radius: 10px;
-      padding: 10px 18px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: transform .2s ease;
-    }
-    .btn-primary:hover, .btn-ghost:hover {
-      transform: scale(1.05);
+    .btn-primary:hover,
+    .btn-primary:focus-visible,
+    .btn-ghost:hover,
+    .btn-ghost:focus-visible {
+      background: var(
+        --button-hover-bg,
+        linear-gradient(132deg, rgba(42,217,119,0.34), rgba(118,255,101,0.26))
+      );
+      color: var(--button-hover-color, #041104);
+      box-shadow: var(
+        --button-hover-shadow,
+        0 18px 36px rgba(17,123,69,0.26), inset 0 0 22px rgba(118,255,101,0.24)
+      );
+      transform: var(--button-hover-transform, translateY(-3px) scale(1.02));
+      border-color: var(--button-hover-border, rgba(42,217,119,0.6));
+      outline: none;
     }
   `;
   document.head.appendChild(css);

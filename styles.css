@@ -12,13 +12,17 @@
   --accent-light: #76ff65;
   --accent-soft: rgba(42, 217, 119, 0.12);
   --accent-glow: rgba(42, 217, 119, 0.5);
+  --accent-rgb: 42, 217, 119;
+  --accent-soft-rgb: 17, 123, 69;
+  --accent-pop-rgb: 118, 255, 101;
   --button-bg: rgba(57, 255, 20, 0.1);
   --button-border: rgba(57, 255, 20, 0.35);
   --button-color: rgba(210, 255, 215, 0.9);
-  --button-hover-bg: linear-gradient(90deg, #39ff14, #76ff65);
+  --button-hover-bg: linear-gradient(132deg, rgba(var(--accent-rgb), 0.34), rgba(var(--accent-pop-rgb), 0.26));
   --button-hover-color: #041104;
-  --button-hover-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
-  --button-hover-transform: translateY(-1px);
+  --button-hover-shadow: 0 18px 36px rgba(var(--accent-soft-rgb), 0.26), inset 0 0 22px rgba(var(--accent-pop-rgb), 0.24);
+  --button-hover-transform: translateY(-3px) scale(1.02);
+  --button-hover-border: rgba(var(--accent-rgb), 0.6);
   --radius-lg: 18px;
   --radius-md: 14px;
   --transition: all 0.25s ease;
@@ -184,6 +188,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--button-hover-color);
   box-shadow: var(--button-hover-shadow);
   transform: var(--button-hover-transform);
+  border-color: var(--button-hover-border);
 }
 
 .filter-btn.is-active,
@@ -1006,10 +1011,10 @@ main form textarea:focus {
   align-items: center;
   gap: 10px;
   padding: 12px 18px;
-  background: var(--surface-raised);
-  border: 1px solid var(--border-soft);
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
   border-radius: 999px;
-  color: var(--text);
+  color: var(--button-color);
   text-decoration: none;
   font-weight: 500;
   transition: var(--transition);
@@ -1022,9 +1027,12 @@ main form textarea:focus {
 
 .quick-actions a:hover,
 .quick-actions a:focus-visible {
-  border-color: var(--border);
-  box-shadow: inset 0 0 12px rgba(57, 255, 20, 0.35);
-  transform: translateY(-1px);
+   border-color: var(--button-hover-border);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .dashboard-main .section {
@@ -1506,14 +1514,14 @@ main form textarea:focus {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: none;
+  border: 1px solid var(--button-border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.68);
-  color: #76ff65;
+  background: var(--button-bg);
+  color: var(--button-color);
   cursor: pointer;
-  transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+  transition: var(--transition);
   z-index: 2;
 }
 
@@ -1525,10 +1533,11 @@ main form textarea:focus {
 
 .media-open:hover,
 .media-open:focus-visible {
-  background: linear-gradient(120deg,#39ff14,#76ff65);
-  color: #111;
-  box-shadow: 0 0 18px rgba(57,255,20,0.38);
-  transform: translateY(-1px) scale(1.05);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  border-color: var(--button-hover-border);
   outline: none;
 }
 
@@ -2262,27 +2271,30 @@ main form textarea:focus {
   gap: 6px;
   padding: 10px 20px;
   border-radius: 999px;
-  border: 1px solid rgba(57, 255, 20, 0.45);
-  background: rgba(10, 14, 16, 0.78);
-  color: rgba(200, 255, 210, 0.85);
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-color);
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.18);
+  transition: var(--transition);
+  box-shadow: none;
 }
 
 .news-archive-tab:hover,
 .news-archive-tab:focus-visible {
-  transform: translateY(-2px);
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.28), rgba(118, 255, 101, 0.18));
-  color: #fff;
-  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.25);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .news-archive-tab.is-active {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.9), rgba(118, 255, 101, 0.9));
-  color: #041104;
-  box-shadow: 0 20px 34px rgba(57, 255, 20, 0.32);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
 }
 
 .news-archive-tabs__info {
@@ -2433,26 +2445,29 @@ main form textarea:focus {
   min-width: 42px;
   height: 42px;
   border-radius: 12px;
-  border: 1px solid rgba(57, 255, 20, 0.28);
-  color: rgba(200, 255, 210, 0.85);
+ border: 1px solid var(--button-border);
+  color: var(--button-color);
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  background: rgba(10, 14, 16, 0.75);
+ transition: var(--transition);
+  background: var(--button-bg);
 }
 
 .news-archive-page-link:hover,
 .news-archive-page-link:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 28px rgba(57, 255, 20, 0.22);
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.25), rgba(118, 255, 101, 0.18));
-  color: #fff;
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .news-archive-page-link.is-active {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.9), rgba(118, 255, 101, 0.9));
-  color: #041104;
-  box-shadow: 0 20px 34px rgba(57, 255, 20, 0.32);
+ background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
 }
 
 .news-archive-back {
@@ -2851,27 +2866,30 @@ main form textarea:focus {
   gap: 6px;
   padding: 10px 20px;
   border-radius: 999px;
-  border: 1px solid rgba(57, 255, 20, 0.45);
-  background: rgba(10, 14, 16, 0.75);
-  color: rgba(200, 255, 210, 0.85);
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-color);
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.18);
+  transition: var(--transition);
+  box-shadow: none;
 }
 
 .messages-page .inventory-tab:hover,
 .messages-page .inventory-tab:focus-visible {
-  transform: translateY(-1px);
-  box-shadow: 0 16px 24px rgba(57, 255, 20, 0.2);
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.28), rgba(118, 255, 101, 0.22));
-  color: #fff;
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .messages-page .inventory-tab.is-active {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.9), rgba(118, 255, 101, 0.9));
-  color: #041104;
-  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
 }
 
 /* ===== Feedback Management ===== */
@@ -2899,27 +2917,30 @@ main form textarea:focus {
   gap: 8px;
   padding: 10px 20px;
   border-radius: 999px;
-  border: 1px solid rgba(57, 255, 20, 0.45);
-  background: rgba(10, 14, 16, 0.75);
-  color: rgba(200, 255, 210, 0.85);
+ border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-color);
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.18);
+  transition: var(--transition);
+  box-shadow: none;
 }
 
 .feedback-page .inventory-tab:hover,
 .feedback-page .inventory-tab:focus-visible {
-  transform: translateY(-1px);
-  box-shadow: 0 16px 24px rgba(57, 255, 20, 0.2);
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.28), rgba(118, 255, 101, 0.22));
-  color: #fff;
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .feedback-page .inventory-tab.is-active {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.9), rgba(118, 255, 101, 0.9));
-  color: #041104;
-  box-shadow: 0 18px 32px rgba(57, 255, 20, 0.32);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
 }
 
 .feedback-page .inventory-tab__count {
@@ -3671,16 +3692,16 @@ gap: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(57, 255, 20, 0.28);
-  background: rgba(6, 10, 12, 0.8);
-  color: #fff;
+ border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-color);
   padding: 10px 18px;
   border-radius: 999px;
   font-weight: 600;
   letter-spacing: 0.2px;
   cursor: pointer;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: var(--transition);
 }
 
 .pricing-tab:focus-visible {
@@ -3688,14 +3709,21 @@ gap: 12px;
   outline-offset: 3px;
 }
 
-.pricing-tab:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(57, 255, 20, 0.15);
+.pricing-tab:hover,
+.pricing-tab:focus-visible {
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .pricing-tab.is-active {
-  background: linear-gradient(120deg, rgba(57, 255, 20, 0.8), rgba(118, 255, 101, 0.9));
-  color: #020504;
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
 }
 
 .pricing-panel {
@@ -3821,16 +3849,22 @@ gap: 12px;
   justify-content: space-between;
   gap: 16px;
   padding: 18px 22px;
-  border: 0;
-  background: rgba(57, 255, 20, 0.08);
-  color: inherit;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-color);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: var(--transition);
 }
 
 .pricing-partner__header:hover,
+.pricing-partner__header:focus-visible,
 .pricing-partner.is-open .pricing-partner__header {
-  background: rgba(57, 255, 20, 0.16);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .pricing-partner__identity {
@@ -3899,20 +3933,25 @@ gap: 12px;
 
 .pricing-vehicles__toggle {
   align-self: flex-start;
-  border: 1px solid rgba(57, 255, 20, 0.35);
-  background: rgba(57, 255, 20, 0.1);
-  color: #fff;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-color);
   padding: 10px 16px;
   border-radius: 999px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: var(--transition);
 }
 
 .pricing-vehicles__toggle:hover,
+.pricing-vehicles__toggle:focus-visible,
 .pricing-vehicles__toggle.is-open {
-  background: rgba(57, 255, 20, 0.24);
-  transform: translateY(-1px);
+  background: var(--button-hover-bg);
+  color: var(--button-hover-color);
+  border-color: var(--button-hover-border);
+  box-shadow: var(--button-hover-shadow);
+  transform: var(--button-hover-transform);
+  outline: none;
 }
 
 .pricing-vehicles {
