@@ -90,8 +90,8 @@ body {
 .login-container h2 {
   font-size: 1.8rem;
   margin-bottom: 20px;
-  color: #39ff14;
-  text-shadow: 0 0 15px #39ff14;
+  color: var(--accent, #2ad977);
+  text-shadow: 0 0 15px rgba(var(--accent-pop-rgb, 118, 255, 101), 0.65);
 }
 
 .login-container input {
@@ -110,8 +110,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--button-bg, rgba(57, 255, 20, 0.1));
-  border: 1px solid var(--button-border, rgba(57, 255, 20, 0.35));
+  background: var(--button-bg, rgba(var(--accent-pop-rgb, 118, 255, 101), 0.1));
+  border: 1px solid var(--button-border, rgba(var(--accent-pop-rgb, 118, 255, 101), 0.35));
   color: var(--button-color, rgba(210, 255, 215, 0.9));
   padding: 12px;
   border-radius: 12px;
@@ -125,15 +125,15 @@ body {
 .login-container button:focus-visible {
   background: var(
     --button-hover-bg,
-    linear-gradient(132deg, rgba(42, 217, 119, 0.34), rgba(118, 255, 101, 0.26))
+    linear-gradient(132deg, rgba(var(--accent-rgb, 42, 217, 119), 0.34), rgba(var(--accent-pop-rgb, 118, 255, 101), 0.26))
   );
   color: var(--button-hover-color, #041104);
   box-shadow: var(
     --button-hover-shadow,
-    0 18px 36px rgba(17, 123, 69, 0.26), inset 0 0 22px rgba(118, 255, 101, 0.24)
+    0 18px 36px rgba(var(--accent-soft-rgb, 17, 123, 69), 0.26), inset 0 0 22px rgba(var(--accent-pop-rgb, 118, 255, 101), 0.24)
   );
   transform: var(--button-hover-transform, translateY(-3px) scale(1.02));
-  border-color: var(--button-hover-border, rgba(42, 217, 119, 0.6));
+  border-color: var(--button-hover-border, rgba(var(--accent-rgb, 42, 217, 119), 0.6));
   outline: none;
 }
 

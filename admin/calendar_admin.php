@@ -226,7 +226,7 @@ $calendarAreas = [
 
 .calendar-admin-check input {
   margin-top: 4px;
-  accent-color: #39ff14;
+  accent-color: var(--accent, #2ad977);
 }
 
 .calendar-admin-check span {
@@ -366,7 +366,7 @@ $calendarAreas = [
       </div>
       <div class="calendar-admin-field">
         <label for="rColor" class="calendar-admin-label">Farbe</label>
-        <input type="color" id="rColor" value="#39ff14" title="Farbe">
+        <input type="color" id="rColor" value="#2ad977" title="Farbe">
       </div>
       <div class="calendar-admin-field">
         <label for="rIcon" class="calendar-admin-label">Icon</label>
@@ -544,7 +544,7 @@ async function loadReasons() {
 
         const swatch = document.createElement('span');
         swatch.className = 'calendar-admin-pill__swatch';
-        swatch.style.background = reason.color || '#39ff14';
+        swatch.style.background = reason.color || '#2ad977';
         pill.appendChild(swatch);
 
         if (reason.icon) {
@@ -571,7 +571,7 @@ async function loadReasons() {
         const colorCell = document.createElement('td');
         const colorSwatch = document.createElement('span');
         colorSwatch.className = 'calendar-admin-color';
-        colorSwatch.style.background = reason.color || '#39ff14';
+        colorSwatch.style.background = reason.color || '#2ad977';
         colorCell.appendChild(colorSwatch);
         tr.appendChild(colorCell);
 
@@ -657,7 +657,7 @@ document.getElementById('reasonForm').addEventListener('submit', async (e) => {
     msg.className = 'inventory-alert inventory-alert--success';
     msg.hidden = false;
     e.target.reset();
-    document.getElementById('rColor').value = '#39ff14';
+    document.getElementById('rColor').value = '#2ad977';
     loadReasons();
   } else {
     msg.textContent = 'Fehler: ' + (result.error || 'Unbekannter Fehler');
