@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 /**
  * Gamification-Helfer: aggregiert Aktivitätspunkte über Wochenaufgaben,
- * Forum und News-Reaktionen und bereitet Level sowie Achievements auf.
+ * Forum, News-Reaktionen und News-Kommentare und bereitet Level sowie
+ * Achievements auf.
  */
 
 if (!function_exists('gamification_normalize_name')) {
@@ -48,12 +49,13 @@ if (!function_exists('gamification_table_exists')) {
 if (!function_exists('gamification_weights')) {
     function gamification_weights(): array
     {
-        return [
+      return [
             // Für Wochenaufgaben wird XP nur pro vollständig abgeschlossener Woche vergeben.
             // Der Wert entspricht daher direkt dem XP-Bonus je abgeschlossener Woche.
             'tasks'          => 400,
             'forum_posts'    => 5,
             'news_reactions' => 3,
+            'news_comments'  => 8,
         ];
     }
 }
@@ -404,11 +406,13 @@ if (!function_exists('gamification_calculate')) {
                         'tasks_completed_weeks' => 0,
                         'forum_posts'    => 0,
                         'news_reactions' => 0,
+                        'news_comments'  => 0,
                     ],
                     'xp_breakdown'  => [
                         'tasks'          => 0,
                         'forum_posts'    => 0,
                         'news_reactions' => 0,
+                        'news_comments'  => 0,
                     ],
                     'xp'            => [
                         'total' => 0,
@@ -496,6 +500,25 @@ if (!function_exists('gamification_calculate')) {
             }
         }
 
+        if (gamification_table_exists($pdo, 'news_comments')) {
+            try {
+                $sql = 'SELECT ua.mitarbeiter_id AS mid, COUNT(*) AS comment_count
+                        FROM news_comments nc
+                        JOIN user_accounts ua ON ua.id = nc.user_id
+                        WHERE nc.user_id IS NOT NULL AND ua.mitarbeiter_id IS NOT NULL
+                        GROUP BY ua.mitarbeiter_id';
+                $stmt = $pdo->query($sql);
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $id = (int)($row['mid'] ?? 0);
+                    if ($id > 0 && isset($employees[$id])) {
+                        $employees[$id]['metrics']['news_comments'] = (int)($row['comment_count'] ?? 0);
+                    }
+                }
+            } catch (Throwable $e) {
+                // ignorieren
+            }
+        }
+
         $weights            = gamification_weights();
         $levels             = gamification_levels();
         $achievementsConfig = gamification_achievements();
@@ -505,17 +528,20 @@ if (!function_exists('gamification_calculate')) {
             $taskWeeks     = max(0, (int)($employee['metrics']['tasks_completed_weeks'] ?? 0));
             $forumPosts    = max(0, (int)$employee['metrics']['forum_posts']);
             $newsReactions = max(0, (int)$employee['metrics']['news_reactions']);
+            $newsComments  = max(0, (int)$employee['metrics']['news_comments']);
 
             $tasksWeight = max(0, (int)($weights['tasks'] ?? 0));
             $xpTasks     = $taskWeeks * $tasksWeight;
 
             $xpForum     = (int)round($forumPosts * max(0.0, (float)($weights['forum_posts'] ?? 0)));
             $xpReactions = (int)round($newsReactions * max(0.0, (float)($weights['news_reactions'] ?? 0)));
-            $xpTotal     = $xpTasks + $xpForum + $xpReactions;
-            
+            $xpComments  = (int)round($newsComments * max(0.0, (float)($weights['news_comments'] ?? 0)));
+            $xpTotal     = $xpTasks + $xpForum + $xpReactions + $xpComments;
+
             $employee['xp_breakdown']['tasks'] = $xpTasks;
             $employee['xp_breakdown']['forum_posts'] = $xpForum;
             $employee['xp_breakdown']['news_reactions'] = $xpReactions;
+            $employee['xp_breakdown']['news_comments'] = $xpComments;
             $employee['xp']['total'] = $xpTotal;
 
             $currentLevelIndex = 0;
@@ -560,8 +586,11 @@ if (!function_exists('gamification_calculate')) {
                     case 'forum_posts':
                         $unlocked = $forumPosts >= (int)$achievement['threshold'];
                         break;
-                    case 'news_reactions':
+                   case 'news_reactions':
                         $unlocked = $newsReactions >= (int)$achievement['threshold'];
+                        break;
+                    case 'news_comments':
+                        $unlocked = $newsComments >= (int)$achievement['threshold'];
                         break;
                     case 'xp':
                         $unlocked = $xpTotal >= (int)$achievement['threshold'];
