@@ -49,11 +49,167 @@ if (!function_exists('gamification_weights')) {
     function gamification_weights(): array
     {
         return [
-            'tasks'          => 1,
-            'tasks_xp_cap'   => 400,
+            // Für Wochenaufgaben wird XP nur pro vollständig abgeschlossener Woche vergeben.
+            // Der Wert entspricht daher direkt dem XP-Bonus je abgeschlossener Woche.
+            'tasks'          => 400,
             'forum_posts'    => 5,
             'news_reactions' => 3,
         ];
+    }
+}
+
+if (!function_exists('gamification_normalize_week')) {
+    function gamification_normalize_week(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('/^(\d{4})-?W?(\d{1,2})$/', $value, $matches)) {
+            $year = (int) $matches[1];
+            $week = (int) $matches[2];
+            if ($year >= 2000 && $week >= 1 && $week <= 53) {
+                return sprintf('%04d-W%02d', $year, $week);
+            }
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('gamification_collect_task_totals')) {
+    /**
+     * Ermittelt, wie viele Aufgaben-Ziele Mitarbeitende vollständig erfüllt haben.
+     * Es werden nur Wochen gezählt, in denen alle angelegten Aufgaben abgeschlossen wurden.
+     *
+     * @param array<string, int> $nameMap
+     *
+     * @return array<int, array{units: int, completed_weeks: int}>
+     */
+    function gamification_collect_task_totals(PDO $pdo, array $nameMap): array
+    {
+        if (!gamification_table_exists($pdo, 'wochenaufgaben_plan')) {
+            return [];
+        }
+
+        $plans = [];
+        try {
+            $stmt = $pdo->query('SELECT mitarbeiter, produkt, zielmenge, kalenderwoche FROM wochenaufgaben_plan');
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $nameKey = gamification_normalize_name((string) ($row['mitarbeiter'] ?? ''));
+                if ($nameKey === '' || !isset($nameMap[$nameKey])) {
+                    continue;
+                }
+
+                $week = gamification_normalize_week((string) ($row['kalenderwoche'] ?? ''));
+                if ($week === '') {
+                    continue;
+                }
+
+                $product = trim((string) ($row['produkt'] ?? ''));
+                if ($product === '') {
+                    continue;
+                }
+
+                $target = max(0, (int) ($row['zielmenge'] ?? 0));
+                $employeeId = $nameMap[$nameKey];
+                $plans[$employeeId][$week][$product] = ($plans[$employeeId][$week][$product] ?? 0) + $target;
+            }
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        if (!$plans) {
+            return [];
+        }
+
+        $progress = [];
+        $queries = [
+            'wochenaufgaben' => "SELECT mitarbeiter, produkt, SUM(menge) AS total_menge, DATE_FORMAT(datum, '%x-W%v') AS kw FROM wochenaufgaben GROUP BY mitarbeiter, kw, produkt",
+            'wochenaufgaben_archiv' => "SELECT mitarbeiter, produkt, SUM(menge) AS total_menge, kalenderwoche AS kw FROM wochenaufgaben_archiv GROUP BY mitarbeiter, kalenderwoche, produkt",
+        ];
+
+        foreach ($queries as $table => $sql) {
+            if (!gamification_table_exists($pdo, $table)) {
+                continue;
+            }
+
+            try {
+                $stmt = $pdo->query($sql);
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $nameKey = gamification_normalize_name((string) ($row['mitarbeiter'] ?? ''));
+                    if ($nameKey === '' || !isset($nameMap[$nameKey])) {
+                        continue;
+                    }
+
+                    $week = gamification_normalize_week((string) ($row['kw'] ?? ''));
+                    if ($week === '') {
+                        continue;
+                    }
+
+                    $product = trim((string) ($row['produkt'] ?? ''));
+                    if ($product === '') {
+                        continue;
+                    }
+
+                    $employeeId = $nameMap[$nameKey];
+                    $amount = (int) ($row['total_menge'] ?? 0);
+                    if ($amount <= 0) {
+                        continue;
+                    }
+
+                    if (!isset($progress[$employeeId][$week])) {
+                        $progress[$employeeId][$week] = [];
+                    }
+                    $progress[$employeeId][$week][$product] = ($progress[$employeeId][$week][$product] ?? 0) + $amount;
+                }
+            } catch (Throwable $e) {
+                // Ignorieren, wenn Tabelle nicht verfügbar oder Abfrage fehlschlägt.
+            }
+        }
+
+        $totals = [];
+        foreach ($plans as $employeeId => $weeks) {
+            foreach ($weeks as $week => $targets) {
+                $hasTargets = false;
+                $allCompleted = true;
+                $weekTotal = 0;
+
+                foreach ($targets as $product => $target) {
+                    if ($target <= 0) {
+                        continue;
+                    }
+
+                    $hasTargets = true;
+                    $achieved = $progress[$employeeId][$week][$product] ?? 0;
+                    if ($achieved < $target) {
+                        $allCompleted = false;
+                    }
+                    $weekTotal += min($achieved, $target);
+                }
+
+                if ($hasTargets && $allCompleted && $weekTotal > 0) {
+                    if (!isset($totals[$employeeId])) {
+                        $totals[$employeeId] = [
+                            'units'           => 0,
+                            'completed_weeks' => 0,
+                        ];
+                    }
+
+                    $totals[$employeeId]['units'] += $weekTotal;
+                    $totals[$employeeId]['completed_weeks']++;
+                }
+            }
+        }
+
+        foreach ($totals as &$summary) {
+            $summary['units'] = (int)$summary['units'];
+            $summary['completed_weeks'] = (int)$summary['completed_weeks'];
+        }
+        unset($summary);
+
+        return $totals;
     }
 }
 
@@ -245,6 +401,7 @@ if (!function_exists('gamification_calculate')) {
                     'rang'          => $row['rang'] ?? null,
                     'metrics'       => [
                         'tasks'          => 0,
+                        'tasks_completed_weeks' => 0,
                         'forum_posts'    => 0,
                         'news_reactions' => 0,
                     ],
@@ -287,25 +444,23 @@ if (!function_exists('gamification_calculate')) {
             return [];
         }
 
-        foreach (['wochenaufgaben', 'wochenaufgaben_archiv'] as $table) {
-            if (!gamification_table_exists($pdo, $table)) {
+        $taskTotals = gamification_collect_task_totals($pdo, $nameMap);
+        foreach ($taskTotals as $id => $total) {
+            if (!isset($employees[$id])) {
                 continue;
             }
 
-            try {
-                $query = "SELECT mitarbeiter, SUM(menge) AS total_menge FROM {$table} GROUP BY mitarbeiter";
-                $stmt = $pdo->query($query);
-                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $nameKey = gamification_normalize_name((string)($row['mitarbeiter'] ?? ''));
-                    if ($nameKey === '' || !isset($nameMap[$nameKey])) {
-                        continue;
-                    }
-                    $id = $nameMap[$nameKey];
-                    $employees[$id]['metrics']['tasks'] += (int)($row['total_menge'] ?? 0);
-                }
-            } catch (Throwable $e) {
-                // Tabelle evtl. nicht vorhanden → überspringen
+            if (is_array($total)) {
+                $units = (int)($total['units'] ?? 0);
+                $weeks = (int)($total['completed_weeks'] ?? 0);
+            } else {
+                // Rückwärtskompatibilität: falls ältere Caches noch Ganzzahlen liefern.
+                $units = (int)$total;
+                $weeks = 0;
             }
+
+            $employees[$id]['metrics']['tasks'] = max(0, $units);
+            $employees[$id]['metrics']['tasks_completed_weeks'] = max(0, $weeks);
         }
 
         if (gamification_table_exists($pdo, 'forum_posts')) {
@@ -346,17 +501,13 @@ if (!function_exists('gamification_calculate')) {
         $achievementsConfig = gamification_achievements();
 
         foreach ($employees as $id => &$employee) {
-            $tasks         = max(0, (int)$employee['metrics']['tasks']);
+           $tasks         = max(0, (int)$employee['metrics']['tasks']);
+            $taskWeeks     = max(0, (int)($employee['metrics']['tasks_completed_weeks'] ?? 0));
             $forumPosts    = max(0, (int)$employee['metrics']['forum_posts']);
             $newsReactions = max(0, (int)$employee['metrics']['news_reactions']);
 
-            $tasksWeight = max(0.0, (float)($weights['tasks'] ?? 0));
-            $xpTasksRaw  = $tasks * $tasksWeight;
-            $tasksCap    = $weights['tasks_xp_cap'] ?? null;
-            if (is_numeric($tasksCap)) {
-                $xpTasksRaw = min($xpTasksRaw, max(0.0, (float)$tasksCap));
-            }
-            $xpTasks     = (int)round($xpTasksRaw);
+            $tasksWeight = max(0, (int)($weights['tasks'] ?? 0));
+            $xpTasks     = $taskWeeks * $tasksWeight;
 
             $xpForum     = (int)round($forumPosts * max(0.0, (float)($weights['forum_posts'] ?? 0)));
             $xpReactions = (int)round($newsReactions * max(0.0, (float)($weights['news_reactions'] ?? 0)));
