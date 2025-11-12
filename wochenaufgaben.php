@@ -154,7 +154,7 @@ $letzterEintrag = $eintraege[0]['datum'] ?? null;
 
 /* === Zugewiesene Aufgaben & Fortschritt === */
 $stmtAufgaben = $pdo->prepare(
-  "SELECT id, produkt, zielmenge FROM wochenaufgaben_plan WHERE mitarbeiter = ? AND kalenderwoche = ? ORDER BY produkt"
+  "SELECT id, produkt, zielmenge, erstellt_am FROM wochenaufgaben_plan WHERE mitarbeiter = ? AND kalenderwoche = ? ORDER BY erstellt_am, id"
 );
 $stmtAufgaben->execute([$nutzername, $aktuelleWoche]);
 $aufgaben = $stmtAufgaben->fetchAll(PDO::FETCH_ASSOC);
@@ -162,11 +162,16 @@ $aufgaben = $stmtAufgaben->fetchAll(PDO::FETCH_ASSOC);
 $aufgabenFortschritt = [];
 $summeProzent = 0;
 $abgeschlossen = 0;
+$verbrauchteLeistung = [];
 foreach ($aufgaben as $aufgabe) {
   $produkt = $aufgabe['produkt'];
   $ziel = (int)$aufgabe['zielmenge'];
-  $erreicht = isset($gesamt[$produkt]) ? (int)$gesamt[$produkt] : 0;
+  $bereitsVerbraucht = $verbrauchteLeistung[$produkt] ?? 0;
+  $gesamtErreicht = isset($gesamt[$produkt]) ? (int)$gesamt[$produkt] : 0;
+  $verfuegbar = max(0, $gesamtErreicht - $bereitsVerbraucht);
+  $erreicht = min($ziel, $verfuegbar);
   $prozent = $ziel > 0 ? (int)round(min(100, ($erreicht / $ziel) * 100)) : ($erreicht > 0 ? 100 : 0);
+  $verbrauchteLeistung[$produkt] = $bereitsVerbraucht + $erreicht;
   $aufgabenFortschritt[] = [
     'produkt' => $produkt,
     'ziel' => $ziel,
