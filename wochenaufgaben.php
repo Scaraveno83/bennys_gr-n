@@ -6,6 +6,10 @@ session_start();
 require_once 'includes/db.php';
 require_once 'includes/wochenaufgaben_helpers.php';
 
+/* === Feedback aus vorherigen Aktionen === */
+$feedbackMeldung = $_SESSION['wochenaufgaben_error'] ?? null;
+unset($_SESSION['wochenaufgaben_error']);
+
 /* === Zugriff prüfen (Admin oder Mitarbeiter) === */
 if (
     empty($_SESSION['mitarbeiter_name']) &&
@@ -41,6 +45,83 @@ $zeitraumStart = $wochenzeitraum['start_datetime'];
 $zeitraumEnde = $wochenzeitraum['end_datetime'];
 
 ensureWochenaufgabenPlanTable($pdo);
+
+/* === Prüfen, ob Wochenaufgaben zugewiesen wurden === */
+$stmtAufgabenCheck = $pdo->prepare(
+  "SELECT COUNT(*) FROM wochenaufgaben_plan WHERE mitarbeiter = ? AND kalenderwoche = ?"
+);
+$stmtAufgabenCheck->execute([$nutzername, $aktuelleWoche]);
+$hatAufgaben = $stmtAufgabenCheck->fetchColumn() > 0;
+
+/* === Aufgabenstatus vorbereiten === */
+$aufgaben = [];
+$aufgabenFortschritt = [];
+$summeProzent = 0;
+$abgeschlossen = 0;
+$anzahlAufgaben = 0;
+$durchschnittFortschritt = 0;
+$alleAufgabenErledigt = false;
+
+if ($hatAufgaben) {
+  $stmtAufgaben = $pdo->prepare(
+    "SELECT id, produkt, zielmenge, erstellt_am FROM wochenaufgaben_plan WHERE mitarbeiter = ? AND kalenderwoche = ? ORDER BY erstellt_am, id"
+  );
+  $stmtAufgaben->execute([$nutzername, $aktuelleWoche]);
+  $aufgaben = $stmtAufgaben->fetchAll(PDO::FETCH_ASSOC);
+
+  if ($aufgaben) {
+    $stmtSummen = $pdo->prepare(
+      "SELECT produkt, SUM(menge) AS summe FROM wochenaufgaben WHERE mitarbeiter = ? AND datum BETWEEN ? AND ? GROUP BY produkt"
+    );
+    $stmtSummen->execute([$nutzername, $zeitraumStart, $zeitraumEnde]);
+    $produktSummen = [];
+    foreach ($stmtSummen->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $produktSummen[$row['produkt']] = (int) $row['summe'];
+    }
+
+    $verbrauchteLeistung = [];
+    $alleAufgabenErledigt = true;
+
+    foreach ($aufgaben as $aufgabe) {
+      $produkt = $aufgabe['produkt'];
+      $ziel = (int) $aufgabe['zielmenge'];
+      $bereitsVerbraucht = $verbrauchteLeistung[$produkt] ?? 0;
+      $gesamtErreicht = $produktSummen[$produkt] ?? 0;
+      $verfuegbar = max(0, $gesamtErreicht - $bereitsVerbraucht);
+      $erreicht = min($ziel, $verfuegbar);
+      $verbrauchteLeistung[$produkt] = $bereitsVerbraucht + $erreicht;
+
+      $prozent = $ziel > 0
+        ? (int) round(min(100, ($erreicht / $ziel) * 100))
+        : ($erreicht > 0 ? 100 : 0);
+      $erledigt = $ziel > 0 ? $erreicht >= $ziel : $erreicht > 0;
+
+      $aufgabenFortschritt[] = [
+        'produkt' => $produkt,
+        'ziel' => $ziel,
+        'erreicht' => $erreicht,
+        'prozent' => $prozent,
+        'erledigt' => $erledigt,
+      ];
+
+      $summeProzent += $prozent;
+      if ($erledigt) {
+        $abgeschlossen++;
+      } else {
+        $alleAufgabenErledigt = false;
+      }
+    }
+
+    $anzahlAufgaben = count($aufgabenFortschritt);
+    if ($anzahlAufgaben > 0) {
+      $durchschnittFortschritt = (int) round($summeProzent / $anzahlAufgaben);
+    }
+
+    if ($anzahlAufgaben === 0) {
+      $alleAufgabenErledigt = false;
+    }
+  }
+}
 
 /* === Ranggruppen für Lagerzuweisung === */
 $azubiRollen = [
@@ -87,6 +168,18 @@ if ($alteEintraege) {
 
 /* === AKTION: Eintrag hinzufügen === */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
+  if (!$hatAufgaben) {
+    $_SESSION['wochenaufgaben_error'] = 'Es wurden dir keine Wochenaufgaben zugewiesen. Ohne Aufgaben kannst du keine Buchungen vornehmen.';
+    header("Location: wochenaufgaben.php");
+    exit;
+  }
+
+  if ($alleAufgabenErledigt) {
+    $_SESSION['wochenaufgaben_error'] = 'Deine Wochenaufgaben für diese Woche sind bereits vollständig erledigt. Weitere Buchungen sind nicht mehr möglich.';
+    header("Location: wochenaufgaben.php");
+    exit;
+  }
+
   $produkt = trim($_POST['produkt']);
   $menge = intval($_POST['menge']);
 
@@ -153,40 +246,13 @@ $anzahlEintraege = count($eintraege);
 $letzterEintrag = $eintraege[0]['datum'] ?? null;
 
 /* === Zugewiesene Aufgaben & Fortschritt === */
-$stmtAufgaben = $pdo->prepare(
-  "SELECT id, produkt, zielmenge, erstellt_am FROM wochenaufgaben_plan WHERE mitarbeiter = ? AND kalenderwoche = ? ORDER BY erstellt_am, id"
-);
-$stmtAufgaben->execute([$nutzername, $aktuelleWoche]);
-$aufgaben = $stmtAufgaben->fetchAll(PDO::FETCH_ASSOC);
-
-$aufgabenFortschritt = [];
-$summeProzent = 0;
-$abgeschlossen = 0;
-$verbrauchteLeistung = [];
-foreach ($aufgaben as $aufgabe) {
-  $produkt = $aufgabe['produkt'];
-  $ziel = (int)$aufgabe['zielmenge'];
-  $bereitsVerbraucht = $verbrauchteLeistung[$produkt] ?? 0;
-  $gesamtErreicht = isset($gesamt[$produkt]) ? (int)$gesamt[$produkt] : 0;
-  $verfuegbar = max(0, $gesamtErreicht - $bereitsVerbraucht);
-  $erreicht = min($ziel, $verfuegbar);
-  $prozent = $ziel > 0 ? (int)round(min(100, ($erreicht / $ziel) * 100)) : ($erreicht > 0 ? 100 : 0);
-  $verbrauchteLeistung[$produkt] = $bereitsVerbraucht + $erreicht;
-  $aufgabenFortschritt[] = [
-    'produkt' => $produkt,
-    'ziel' => $ziel,
-    'erreicht' => $erreicht,
-    'prozent' => $prozent,
-    'erledigt' => $ziel > 0 ? $erreicht >= $ziel : $erreicht > 0,
-  ];
-  $summeProzent += $prozent;
-  if ($ziel > 0 ? $erreicht >= $ziel : $erreicht > 0) {
-    $abgeschlossen++;
-  }
+if (!$hatAufgaben) {
+  $aufgabenFortschritt = [];
+  $summeProzent = 0;
+  $abgeschlossen = 0;
+  $anzahlAufgaben = 0;
+  $durchschnittFortschritt = 0;
 }
-
-$anzahlAufgaben = count($aufgabenFortschritt);
-$durchschnittFortschritt = $anzahlAufgaben > 0 ? (int)round($summeProzent / $anzahlAufgaben) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -243,8 +309,14 @@ $durchschnittFortschritt = $anzahlAufgaben > 0 ? (int)round($summeProzent / $anz
           <?= $letzterEintrag ? date('H:i \U\h\r', strtotime($letzterEintrag)) : 'keine Daten' ?>
         </span>
       </div>
-    </div>
+   </div>
   </header>
+
+  <?php if ($feedbackMeldung): ?>
+    <div class="inventory-alert inventory-alert--error">
+      <?= htmlspecialchars($feedbackMeldung) ?>
+    </div>
+  <?php endif; ?>
 
    <section class="inventory-section">
     <h2>Meine Wochenziele</h2>
@@ -273,31 +345,41 @@ $durchschnittFortschritt = $anzahlAufgaben > 0 ? (int)round($summeProzent / $anz
 
   <section class="inventory-section">
     <h2>Neuen Eintrag erfassen</h2>
-    <p class="inventory-section__intro">
-      Bitte buche jede abgeschlossene Aufgabe mit Produktart und Menge.
-    </p>
-    <form method="post" class="inventory-form">
-      <input type="hidden" name="add" value="1">
-      <div class="input-control">
-        <label for="produkt">Produkt</label>
-        <select id="produkt" name="produkt" required>
-          <option value="">– bitte wählen –</option>
-          <?php foreach ($produkte as $p): ?>
-            <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+    <?php if ($anzahlAufgaben > 0 && !$alleAufgabenErledigt): ?>
+      <p class="inventory-section__intro">
+        Bitte buche jede abgeschlossene Aufgabe mit Produktart und Menge.
+      </p>
+      <form method="post" class="inventory-form">
+        <input type="hidden" name="add" value="1">
+        <div class="input-control">
+          <label for="produkt">Produkt</label>
+          <select id="produkt" name="produkt" required>
+            <option value="">– bitte wählen –</option>
+            <?php foreach ($produkte as $p): ?>
+              <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
 
-      <div class="input-control">
-        <label for="menge">Menge</label>
-        <input id="menge" class="input-field" type="number" name="menge" min="1" placeholder="z. B. 50" required>
-      </div>
+        <div class="input-control">
+          <label for="menge">Menge</label>
+          <input id="menge" class="input-field" type="number" name="menge" min="1" placeholder="z. B. 50" required>
+        </div>
 
-      <div class="form-actions">
-        <button type="submit" class="inventory-submit">Eintrag speichern</button>
-        <span class="form-hint">Wird automatisch im richtigen Lager verbucht.</span>
-      </div>
-    </form>
+        <div class="form-actions">
+          <button type="submit" class="inventory-submit">Eintrag speichern</button>
+          <span class="form-hint">Wird automatisch im richtigen Lager verbucht.</span>
+        </div>
+      </form>
+    <?php elseif ($anzahlAufgaben > 0): ?>
+      <p class="inventory-section__intro">
+        ✅ Du hast alle Wochenaufgaben dieser Woche erledigt. Neue Buchungen sind erst wieder in der nächsten Woche möglich.
+      </p>
+    <?php else: ?>
+      <p class="inventory-section__intro">
+        Dir wurden für diese Woche keine Aufgaben zugewiesen. Sobald Aufgaben vorliegen, kannst du hier Einträge erfassen.
+      </p>
+    <?php endif; ?>
   </section>
 
   <section class="inventory-section">
