@@ -3820,11 +3820,12 @@ gap: 12px;
 .inventory-summary {
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid rgba(57, 255, 20, 0.18);
-  background: rgba(8, 12, 14, 0.78);
+  border: 1px solid var(--accent-border-soft);
+  background:
+    linear-gradient(135deg, rgba(var(--accent-rgb), 0.08), rgba(8, 12, 14, 0.78));
   display: grid;
   gap: 6px;
-  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.06);
 }
 
 .inventory-summary__label {
@@ -3845,9 +3846,19 @@ gap: 12px;
 }
 
 .inventory-summary--accent {
-  border-color: rgba(57, 255, 20, 0.38);
-  background: linear-gradient(135deg, rgba(57, 255, 20, 0.22), rgba(8, 12, 14, 0.85));
-  box-shadow: 0 0 24px rgba(57, 255, 20, 0.22);
+  border-color: var(--accent-border-mid);
+  background:
+    linear-gradient(135deg, var(--accent-fill-strong), rgba(8, 12, 14, 0.9));
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.22);
+}
+
+.inventory-summary--accent .inventory-summary__label,
+.inventory-summary--accent .inventory-summary__hint {
+  color: var(--accent-text-muted);
+}
+
+.inventory-summary--accent .inventory-summary__value {
+  color: var(--accent-text-strong);
 }
 
 .inventory-empty {
