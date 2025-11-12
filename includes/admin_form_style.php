@@ -39,8 +39,8 @@ form button {
   gap:8px;
   padding:12px 25px;
   border-radius:12px;
-  border:1px solid var(--button-border, rgba(57,255,20,0.35));
-  background:var(--button-bg, rgba(57,255,20,0.1));
+  border:1px solid var(--button-border, rgba(var(--accent-pop-rgb, 118,255,101),0.35));
+  background:var(--button-bg, rgba(var(--accent-pop-rgb, 118,255,101),0.1));
   color:var(--button-color, rgba(210,255,215,0.9));
   font-weight:700;
   cursor:pointer;
@@ -62,9 +62,9 @@ form button:focus-visible {
   outline:none;
 }
 .success {
-  background:rgba(40,255,120,0.1);
-  border:1px solid rgba(40,255,120,0.4);
-  color:#90ee90;
+  background:rgba(var(--accent-rgb, 42,217,119),0.12);
+  border:1px solid rgba(var(--accent-rgb, 42,217,119),0.38);
+  color:rgba(var(--accent-pop-rgb, 118,255,101),0.85);
   padding:10px;
   border-radius:8px;
   margin-bottom:15px;
@@ -73,11 +73,11 @@ form button:focus-visible {
 .back-link {
   display:inline-block;
   margin-top:20px;
-  color:#39ff14;
+  color:var(--accent, #2ad977);
   text-decoration:none;
   font-weight:bold;
 }
 .back-link:hover {
-  text-shadow:0 0 10px #39ff14;
+  text-shadow:0 0 10px rgba(var(--accent-pop-rgb, 118,255,101),0.65);
 }
 </style>

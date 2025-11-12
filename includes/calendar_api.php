@@ -40,7 +40,7 @@ switch ($action) {
    * ========================================= */
   case 'add_reason':
     $label = trim($input['label'] ?? '');
-    $color = trim($input['color'] ?? '#39ff14');
+    $color = trim($input['color'] ?? '#2ad977');
     $icon  = trim($input['icon'] ?? '');
     if ($label === '') {
       echo json_encode(['ok' => false, 'error' => 'Missing label']);

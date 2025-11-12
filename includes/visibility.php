@@ -109,8 +109,8 @@ function enforce_area_access($areaKey, $exitOnBlock = true) {
       display:flex;align-items:center;justify-content:center;z-index:99999;">
       <div style="
         max-width:520px;width:92%;padding:28px;border-radius:16px;
-        background:rgba(20,20,20,0.95);border:2px solid #39ff14;
-        color:#fff;text-align:center;box-shadow:0 0 24px rgba(57,255,20,.5)">
+        background:rgba(20,20,20,0.95);border:2px solid var(--accent, #2ad977);
+        color:#fff;text-align:center;box-shadow:0 0 24px rgba(var(--accent-pop-rgb, 118,255,101),.5)">
         <h3 style="margin:0 0 10px;font-weight:800;color:#a8ffba">Zugriff gesperrt</h3>
         <p>Dein Status ist aktuell <b style="color:#76ff65">Abwesend</b>.</p>
         <p style="opacity:.85">Bis voraussichtlich <b>'.$untilTxt.'</b>.</p>
