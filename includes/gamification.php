@@ -49,7 +49,8 @@ if (!function_exists('gamification_weights')) {
     function gamification_weights(): array
     {
         return [
-            'tasks'          => 2,
+            'tasks'          => 1,
+            'tasks_xp_cap'   => 400,
             'forum_posts'    => 5,
             'news_reactions' => 3,
         ];
@@ -349,11 +350,18 @@ if (!function_exists('gamification_calculate')) {
             $forumPosts    = max(0, (int)$employee['metrics']['forum_posts']);
             $newsReactions = max(0, (int)$employee['metrics']['news_reactions']);
 
-            $xpTasks     = $tasks * ($weights['tasks'] ?? 0);
-            $xpForum     = $forumPosts * ($weights['forum_posts'] ?? 0);
-            $xpReactions = $newsReactions * ($weights['news_reactions'] ?? 0);
-            $xpTotal     = $xpTasks + $xpForum + $xpReactions;
+            $tasksWeight = max(0.0, (float)($weights['tasks'] ?? 0));
+            $xpTasksRaw  = $tasks * $tasksWeight;
+            $tasksCap    = $weights['tasks_xp_cap'] ?? null;
+            if (is_numeric($tasksCap)) {
+                $xpTasksRaw = min($xpTasksRaw, max(0.0, (float)$tasksCap));
+            }
+            $xpTasks     = (int)round($xpTasksRaw);
 
+            $xpForum     = (int)round($forumPosts * max(0.0, (float)($weights['forum_posts'] ?? 0)));
+            $xpReactions = (int)round($newsReactions * max(0.0, (float)($weights['news_reactions'] ?? 0)));
+            $xpTotal     = $xpTasks + $xpForum + $xpReactions;
+            
             $employee['xp_breakdown']['tasks'] = $xpTasks;
             $employee['xp_breakdown']['forum_posts'] = $xpForum;
             $employee['xp_breakdown']['news_reactions'] = $xpReactions;
