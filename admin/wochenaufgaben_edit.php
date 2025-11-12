@@ -88,12 +88,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_task'])) {
   $planWeek = normalizeKalenderwoche($_POST['kalenderwoche'] ?? $selectedWeek, $selectedWeek);
   $mitarbeiter = trim($_POST['mitarbeiter']);
-  $produkt = trim($_POST['produkt']);
-  $zielmenge = max(0, (int)$_POST['zielmenge']);
 
-  if ($mitarbeiter !== '' && $produkt !== '' && $zielmenge > 0) {
+  $produkte = $_POST['produkte'] ?? ($_POST['produkt'] ?? []);
+  $zielmengen = $_POST['zielmengen'] ?? ($_POST['zielmenge'] ?? []);
+
+  if (!is_array($produkte)) {
+    $produkte = [$produkte];
+  }
+  if (!is_array($zielmengen)) {
+    $zielmengen = [$zielmengen];
+  }
+
+  if ($mitarbeiter !== '') {
     $stmt = $pdo->prepare("INSERT INTO wochenaufgaben_plan (mitarbeiter, produkt, zielmenge, kalenderwoche) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$mitarbeiter, $produkt, $zielmenge, $planWeek]);
+
+    foreach ($produkte as $index => $produkt) {
+      $produkt = trim((string)$produkt);
+      $zielmenge = isset($zielmengen[$index]) ? max(0, (int)$zielmengen[$index]) : 0;
+
+      if ($produkt !== '' && $zielmenge > 0) {
+        $stmt->execute([$mitarbeiter, $produkt, $zielmenge, $planWeek]);
+      }
+    }
   }
 
   header("Location: wochenaufgaben_edit.php?week=" . urlencode($planWeek));
@@ -229,6 +245,32 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
   color: #fff;
   font: inherit;
 }
+
+.task-product-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.task-product-row {
+  display: grid;
+  gap: 12px;
+}
+
+.task-product-row .remove-task-row {
+  justify-self: start;
+}
+
+@media (min-width: 720px) {
+  .task-product-row {
+    grid-template-columns: 1fr 180px auto;
+    align-items: center;
+  }
+}
+
+.task-product-add {
+  margin-top: 4px;
+}
 </style>
 </head>
 <body>
@@ -322,23 +364,40 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
         </select>
       </div>
 
-      <div class="input-control">
-        <label for="task_produkt">Produkt</label>
-        <select id="task_produkt" name="produkt" class="inventory-select" required>
-          <option value="">– Produkt wählen –</option>
-          <?php foreach ($produkte as $p): ?>
-            <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+      <div class="input-control input-control--full">
+        <label>Produkte &amp; Zielmengen</label>
+        <div id="task-product-list" class="task-product-list" aria-live="polite">
+          <div class="task-product-row">
+            <select name="produkte[]" class="inventory-select" required>
+              <option value="">– Produkt wählen –</option>
+              <?php foreach ($produkte as $p): ?>
+                <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <input class="input-field" type="number" name="zielmengen[]" min="1" placeholder="z. B. 150" required>
+            <button type="button" class="inventory-submit inventory-submit--ghost inventory-submit--small remove-task-row" aria-label="Produkt entfernen">✖</button>
+          </div>
+        </div>
 
-      <div class="input-control">
-        <label for="task_ziel">Zielmenge</label>
-        <input id="task_ziel" class="input-field" type="number" name="zielmenge" min="1" placeholder="z. B. 150" required>
+        <button type="button" id="add-task-row" class="inventory-submit inventory-submit--ghost task-product-add">+ Weiteres Produkt hinzufügen</button>
+        <p class="form-hint">Füge mehrere Produkte hinzu, um einem Mitarbeitenden verschiedene Ziele auf einmal zuzuweisen.</p>
+
+        <template id="task-product-template">
+          <div class="task-product-row">
+            <select name="produkte[]" class="inventory-select" required>
+              <option value="">– Produkt wählen –</option>
+              <?php foreach ($produkte as $p): ?>
+                <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <input class="input-field" type="number" name="zielmengen[]" min="1" placeholder="z. B. 150" required>
+            <button type="button" class="inventory-submit inventory-submit--ghost inventory-submit--small remove-task-row" aria-label="Produkt entfernen">✖</button>
+          </div>
+        </template>
       </div>
 
       <div class="form-actions" style="align-self:end;">
-        <button type="submit" class="inventory-submit">+ Aufgabe hinzufügen</button>
+        <button type="submit" class="inventory-submit">+ Aufgaben speichern</button>
       </div>
     </form>
 
@@ -533,6 +592,53 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
   <p>&copy; <?= date('Y'); ?> Benny's Werkstatt – Alle Rechte vorbehalten.</p>
   <a href="#top" id="toTop" class="footer-btn">Nach oben ↑</a>
 </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const productList = document.querySelector('#task-product-list');
+  const addButton = document.querySelector('#add-task-row');
+  const template = document.querySelector('#task-product-template');
+
+  if (!productList || !addButton || !template) {
+    return;
+  }
+
+  const toggleRemoveButtons = () => {
+    const rows = productList.querySelectorAll('.task-product-row');
+    rows.forEach((row) => {
+      const removeButton = row.querySelector('.remove-task-row');
+      if (removeButton) {
+        removeButton.style.display = rows.length > 1 ? '' : 'none';
+      }
+    });
+  };
+
+  addButton.addEventListener('click', () => {
+    const clone = template.content.firstElementChild.cloneNode(true);
+    productList.appendChild(clone);
+    toggleRemoveButtons();
+  });
+
+  productList.addEventListener('click', (event) => {
+    const target = event.target.closest('.remove-task-row');
+    if (!target) {
+      return;
+    }
+
+    if (productList.children.length <= 1) {
+      return;
+    }
+
+    const row = target.closest('.task-product-row');
+    if (row) {
+      row.remove();
+      toggleRemoveButtons();
+    }
+  });
+
+  toggleRemoveButtons();
+});
+</script>
 
 <script src="../script.js"></script>
 </body>
