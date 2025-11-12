@@ -90,7 +90,7 @@ $userRole   = $_SESSION['user_role'] ?? '';
 <title>Benny's Werkstatt – Tuning & Reparaturen</title>
 
 <meta name="description" content="Benny’s Werkstatt – dein Partner für Fahrzeugtuning, Reparaturen und Aufbereitung." />
-<meta name="theme-color" content="#39ff14" />
+<meta name="theme-color" content="#2ad977" />
 <meta property="og:title" content="Benny's Werkstatt – Tuning & Reparaturen" />
 <meta property="og:description" content="Offizielle Seite von Benny’s Werkstatt – Qualität, Power und Design für dein Fahrzeug." />
 <meta property="og:type" content="website" />
@@ -362,17 +362,17 @@ $userRole   = $_SESSION['user_role'] ?? '';
 #news-popup .news-popup-inner {
   width: min(560px, 92vw) !important;
   background: rgba(25,25,25,0.96) !important;
-  border: 2px solid #39ff14 !important;
+  border: 2px solid var(--accent, #2ad977) !important;
   border-radius: 16px !important;
   padding: 24px 26px !important;
   color: #fff !important;
-  box-shadow: 0 0 35px rgba(57,255,20,0.55) !important;
+  box-shadow: 0 0 35px rgba(var(--accent-pop-rgb, 118, 255, 101), 0.55) !important;
   text-align: center !important;
 }
 
 #news-popup .news-popup-inner h3 {
   color: #76ff65 !important;
-  text-shadow: 0 0 14px #39ff14 !important;
+  text-shadow: 0 0 14px rgba(var(--accent-pop-rgb, 118, 255, 101), 0.65) !important;
   margin-top: 0 !important;
   margin-bottom: 8px !important;
 }

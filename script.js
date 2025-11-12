@@ -211,16 +211,16 @@ if (isAdmin) {
       animation: fadeIn 0.3s ease forwards;
     }
     @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
-    .news-popup-inner {
-      background: rgba(25,25,25,0.95);
-      border: 2px solid #39ff14;
+    .news-popup-inner {␊
+      background: rgba(25,25,25,0.95);␊
+      border: 2px solid var(--accent, #2ad977);
       border-radius: 15px;
       padding: 30px;
       text-align: center;
       color: #fff;
       max-width: 420px;
       width: 90%;
-      box-shadow: 0 0 25px rgba(57,255,20,0.6);
+      box-shadow: 0 0 25px rgba(var(--accent-pop-rgb, 118,255,101),0.6);
     }
     .popup-buttons {
       margin-top: 20px;
@@ -236,8 +236,8 @@ if (isAdmin) {
       gap: 8px;
       padding: 12px 22px;
       border-radius: 12px;
-      border: 1px solid var(--button-border, rgba(57,255,20,0.35));
-      background: var(--button-bg, rgba(57,255,20,0.1));
+      border: 1px solid var(--button-border, rgba(var(--accent-pop-rgb, 118,255,101),0.35));
+      background: var(--button-bg, rgba(var(--accent-pop-rgb, 118,255,101),0.1))
       color: var(--button-color, rgba(210,255,215,0.9));
       font-weight: 700;
       text-decoration: none;
