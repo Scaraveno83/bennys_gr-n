@@ -364,7 +364,7 @@ uksort($teamNachRang, static function ($a, $b) use ($rang_order) {
   <section class="inventory-section team-leaderboard">
     <div class="team-leaderboard__heading">
       <h2>🏆 Gamification Rangliste</h2>
-      <p class="team-leaderboard__intro">Punkte aus Wochenaufgaben, Forum und News-Reaktionen – immer live aktualisiert.</p>
+      <p class="team-leaderboard__intro">Punkte aus Wochenaufgaben, Forum sowie News-Reaktionen &amp; -Kommentaren – immer live aktualisiert.</p>
     </div>
 
     <?php if (!empty($leaderboard)): ?>

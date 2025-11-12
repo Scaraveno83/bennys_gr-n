@@ -253,6 +253,11 @@ $contactItems = [
           <span class="profile-xp-breakdown__value"><?= profile_number_format((int) ($gamificationProfile['metrics']['news_reactions'] ?? 0)) ?></span>
           <span class="profile-xp-breakdown__hint"><?= profile_number_format((int) ($gamificationProfile['xp_breakdown']['news_reactions'] ?? 0)) ?> XP</span>
         </div>
+        <div class="profile-xp-breakdown__item">
+          <span class="profile-xp-breakdown__label">News-Kommentare</span>
+          <span class="profile-xp-breakdown__value"><?= profile_number_format((int) ($gamificationProfile['metrics']['news_comments'] ?? 0)) ?></span>
+          <span class="profile-xp-breakdown__hint"><?= profile_number_format((int) ($gamificationProfile['xp_breakdown']['news_comments'] ?? 0)) ?> XP</span>
+        </div>
       </div>
 
       <?php if (!empty($lastAchievement)): ?>
