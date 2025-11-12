@@ -205,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
   $produkt = trim($_POST['produkt']);
   $menge = intval($_POST['menge']);
 
-  f ($produkt && $menge > 0) {
+  if ($produkt && $menge > 0) {
     if (!in_array($produkt, $buchbareProdukte, true)) {
       $_SESSION['wochenaufgaben_error'] = 'Das ausgewählte Produkt gehört nicht zu deinen zugewiesenen Wochenaufgaben.';
       header("Location: wochenaufgaben.php");
