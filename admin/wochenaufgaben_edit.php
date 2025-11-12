@@ -165,7 +165,7 @@ $gesamtMenge = array_sum(array_map(static fn($entry) => (int)$entry['menge'], $e
 $letzteAktualisierung = $eintraege[0]['datum'] ?? null;
 
 /* === Aufgabenplanung laden === */
-$stmtPlan = $pdo->prepare("SELECT * FROM wochenaufgaben_plan WHERE kalenderwoche = ? ORDER BY mitarbeiter, produkt");
+$stmtPlan = $pdo->prepare("SELECT * FROM wochenaufgaben_plan WHERE kalenderwoche = ? ORDER BY mitarbeiter, produkt, erstellt_am, id");
 $stmtPlan->execute([$selectedWeek]);
 $geplanteAufgaben = $stmtPlan->fetchAll(PDO::FETCH_ASSOC);
 
@@ -178,12 +178,17 @@ $geplanteAufgabenGruppiert = [];
 $geplanteAufgabenMitFortschritt = [];
 $erledigteAufgaben = 0;
 $summeFortschrittGeplant = 0;
+$verbrauchtePlanLeistung = [];
 foreach ($geplanteAufgaben as $aufgabe) {
   $mitarbeiter = $aufgabe['mitarbeiter'];
   $produkt = $aufgabe['produkt'];
   $ziel = (int)$aufgabe['zielmenge'];
-  $erreicht = $leistungen[$mitarbeiter][$produkt] ?? 0;
+  $bereitsVerbraucht = $verbrauchtePlanLeistung[$mitarbeiter][$produkt] ?? 0;
+  $gesamtErreicht = $leistungen[$mitarbeiter][$produkt] ?? 0;
+  $verfuegbar = max(0, $gesamtErreicht - $bereitsVerbraucht);
+  $erreicht = min($ziel, $verfuegbar);
   $prozent = $ziel > 0 ? (int)round(min(100, ($erreicht / $ziel) * 100)) : ($erreicht > 0 ? 100 : 0);
+  $verbrauchtePlanLeistung[$mitarbeiter][$produkt] = $bereitsVerbraucht + $erreicht;
   $aufgabeMitFortschritt = [
     'id' => $aufgabe['id'],
     'mitarbeiter' => $mitarbeiter,
