@@ -156,8 +156,8 @@
   height: 72px;
   object-fit: cover;
   border-radius: 16px;
-  border: 2px solid rgba(118, 255, 101, 0.65);
-  box-shadow: 0 0 16px rgba(118, 255, 101, 0.3);
+  border: 2px solid rgba(var(--accent-pop-rgb), 0.65);
+  box-shadow: 0 0 16px rgba(var(--accent-pop-rgb), 0.28);
 }
 
 .forum-post__body {
@@ -239,8 +239,8 @@
 }
 
 .forum-emoji-toggle {
-  background: rgba(20, 24, 26, 0.9);
-  border: 1px solid rgba(118, 255, 101, 0.45);
+  background: var(--button-bg);
+  border: 1px solid var(--accent-border-mid);
   border-radius: 10px;
   padding: 6px 12px;
   color: rgba(200, 255, 210, 0.9);
@@ -251,8 +251,8 @@
 
 .forum-emoji-toggle:hover,
 .forum-emoji-toggle:focus-visible {
-  border-color: rgba(118, 255, 101, 0.65);
-  box-shadow: 0 12px 22px rgba(57, 255, 20, 0.25);
+  border-color: var(--accent-border-strong);
+  box-shadow: 0 12px 22px rgba(var(--accent-rgb), 0.25);
 }
 
 .forum-emoji-picker {
