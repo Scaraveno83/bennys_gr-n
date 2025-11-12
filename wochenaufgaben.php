@@ -36,7 +36,13 @@ if (!empty($_SESSION['user_id'])) {
 }
 
 /* === Grundkonfiguration === */
-$produkte = ['Öl', 'Fasern', 'Stoff', 'Eisenbarren', 'Eisenerz'];
+$standardProdukte = ['Öl', 'Fasern', 'Stoff', 'Eisenbarren', 'Eisenerz'];
+$produkte = $standardProdukte;
+$buchbareProdukte = [];
+$verfuegbareProdukte = [];
+$aufgabenZieleProProdukt = [];
+$aufgabenRestMengen = [];
+$produktSummen = [];;
 $aktuelleWoche = normalizeKalenderwoche(null);
 $wochenzeitraum = getWeekPeriod($aktuelleWoche);
 $anzeigeMontag = $wochenzeitraum['start_date'];
@@ -70,6 +76,14 @@ if ($hatAufgaben) {
   $aufgaben = $stmtAufgaben->fetchAll(PDO::FETCH_ASSOC);
 
   if ($aufgaben) {
+    foreach ($aufgaben as $aufgabe) {
+      $produkt = $aufgabe['produkt'];
+      $ziel = (int) $aufgabe['zielmenge'];
+      $aufgabenZieleProProdukt[$produkt] = ($aufgabenZieleProProdukt[$produkt] ?? 0) + $ziel;
+    }
+
+    $buchbareProdukte = array_values(array_unique(array_keys($aufgabenZieleProProdukt)));
+    $produkte = array_values(array_unique(array_merge($produkte, $buchbareProdukte)));
     $stmtSummen = $pdo->prepare(
       "SELECT produkt, SUM(menge) AS summe FROM wochenaufgaben WHERE mitarbeiter = ? AND datum BETWEEN ? AND ? GROUP BY produkt"
     );
@@ -119,6 +133,14 @@ if ($hatAufgaben) {
 
     if ($anzahlAufgaben === 0) {
       $alleAufgabenErledigt = false;
+    }
+
+    foreach ($aufgabenZieleProProdukt as $produktName => $zielSumme) {
+      $bereitsGebucht = $produktSummen[$produktName] ?? 0;
+      $aufgabenRestMengen[$produktName] = max(0, $zielSumme - $bereitsGebucht);
+      if ($aufgabenRestMengen[$produktName] > 0) {
+        $verfuegbareProdukte[] = $produktName;
+      }
     }
   }
 }
@@ -183,7 +205,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add'])) {
   $produkt = trim($_POST['produkt']);
   $menge = intval($_POST['menge']);
 
-  if ($produkt && $menge > 0) {
+  f ($produkt && $menge > 0) {
+    if (!in_array($produkt, $buchbareProdukte, true)) {
+      $_SESSION['wochenaufgaben_error'] = 'Das ausgewählte Produkt gehört nicht zu deinen zugewiesenen Wochenaufgaben.';
+      header("Location: wochenaufgaben.php");
+      exit;
+    }
+
+    $verbleibendeMenge = $aufgabenRestMengen[$produkt] ?? 0;
+    if ($verbleibendeMenge <= 0) {
+      $_SESSION['wochenaufgaben_error'] = 'Für dieses Produkt hast du deine Wochenaufgabe bereits vollständig erfüllt. Bitte buche deine übrigen Aufgaben.';
+      header("Location: wochenaufgaben.php");
+      exit;
+    }
+
+    if ($menge > $verbleibendeMenge) {
+      $_SESSION['wochenaufgaben_error'] = sprintf(
+        'Du kannst für %s höchstens noch %d verbuchen.',
+        $produkt,
+        $verbleibendeMenge
+      );
+      header("Location: wochenaufgaben.php");
+      exit;
+    }
+
     // Eintrag speichern
     $stmt = $pdo->prepare("
       INSERT INTO wochenaufgaben (mitarbeiter, produkt, menge, datum)
@@ -346,31 +391,37 @@ if (!$hatAufgaben) {
   <section class="inventory-section">
     <h2>Neuen Eintrag erfassen</h2>
     <?php if ($anzahlAufgaben > 0 && !$alleAufgabenErledigt): ?>
-      <p class="inventory-section__intro">
-        Bitte buche jede abgeschlossene Aufgabe mit Produktart und Menge.
-      </p>
-      <form method="post" class="inventory-form">
-        <input type="hidden" name="add" value="1">
-        <div class="input-control">
-          <label for="produkt">Produkt</label>
-          <select id="produkt" name="produkt" required>
-            <option value="">– bitte wählen –</option>
-            <?php foreach ($produkte as $p): ?>
-              <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
+      <?php if (!empty($verfuegbareProdukte)): ?>
+        <p class="inventory-section__intro">
+          Bitte buche jede abgeschlossene Aufgabe mit Produktart und Menge.
+        </p>
+        <form method="post" class="inventory-form">
+          <input type="hidden" name="add" value="1">
+          <div class="input-control">
+            <label for="produkt">Produkt</label>
+            <select id="produkt" name="produkt" required>
+              <option value="">– bitte wählen –</option>
+              <?php foreach ($verfuegbareProdukte as $p): ?>
+                <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
 
-        <div class="input-control">
-          <label for="menge">Menge</label>
-          <input id="menge" class="input-field" type="number" name="menge" min="1" placeholder="z. B. 50" required>
-        </div>
+          <div class="input-control">
+            <label for="menge">Menge</label>
+            <input id="menge" class="input-field" type="number" name="menge" min="1" placeholder="z. B. 50" required>
+          </div>
 
-        <div class="form-actions">
-          <button type="submit" class="inventory-submit">Eintrag speichern</button>
-          <span class="form-hint">Wird automatisch im richtigen Lager verbucht.</span>
-        </div>
-      </form>
+          <div class="form-actions">
+            <button type="submit" class="inventory-submit">Eintrag speichern</button>
+            <span class="form-hint">Wird automatisch im richtigen Lager verbucht.</span>
+          </div>
+        </form>
+      <?php else: ?>
+        <p class="inventory-section__intro">
+          Für deine verbleibenden Aufgaben wurden alle benötigten Produkte bereits vollständig verbucht.
+        </p>
+      <?php endif; ?>
     <?php elseif ($anzahlAufgaben > 0): ?>
       <p class="inventory-section__intro">
         ✅ Du hast alle Wochenaufgaben dieser Woche erledigt. Neue Buchungen sind erst wieder in der nächsten Woche möglich.
