@@ -4,6 +4,12 @@ require_once '../includes/db.php';
 
 // Zentrale Admin-Zugriffskontrolle
 require_once '../includes/admin_access.php';
+require_once '../includes/kuehlschrank_invoices.php';
+
+fridge_invoices_ensure_schema($pdo);
+
+$invoiceFlash = $_SESSION['fridge_invoice_notice'] ?? null;
+unset($_SESSION['fridge_invoice_notice']);
 
 /* === Aktionen === */
 
@@ -73,8 +79,52 @@ if (isset($_POST['archivieren'])) {
       "INSERT INTO kuehlschrank_archiv (mitarbeiter, gesamt_kosten, woche, archiviert_am) VALUES (?, ?, ?, NOW())"
     );
 
+    $invoiceCreated = 0;
+    $invoiceMessages = 0;
+    $invoiceDuplicates = [];
+    $invoiceNoAccount = [];
+
     foreach ($kosten as $k) {
       $insertStmt->execute([$k['mitarbeiter'], $k['gesamt_kosten'], $kwWert]);
+
+      $betrag = (float)$k['gesamt_kosten'];
+      if ($betrag <= 0) {
+        continue;
+      }
+
+      $mitarbeiterName = $k['mitarbeiter'];
+      if (fridge_invoice_exists($pdo, $mitarbeiterName, $wocheStart, $wocheEnde)) {
+        $invoiceDuplicates[] = $mitarbeiterName;
+        continue;
+      }
+
+      $periodeLabel = fridge_invoice_period_label($wocheStart, $wocheEnde);
+      $invoiceId = fridge_invoice_create(
+        $pdo,
+        $mitarbeiterName,
+        $wocheStart,
+        $wocheEnde,
+        $betrag,
+        $_SESSION['user_id'] ?? null,
+        false,
+        $periodeLabel
+      );
+      $invoiceCreated++;
+
+      $items = fridge_invoice_collect_items($pdo, $mitarbeiterName, $wocheStart, $wocheEnde);
+      $subject = '🍫 Kühlschrankabrechnung ' . $periodeLabel;
+      $messageText = fridge_invoice_build_message($mitarbeiterName, $periodeLabel, $betrag, $items);
+
+      $receiverId = fridge_invoice_find_user_id($pdo, $mitarbeiterName);
+      $senderId = $_SESSION['user_id'] ?? null;
+
+      if ($receiverId && $senderId) {
+        $messageId = fridge_invoice_send_message($pdo, $senderId, $receiverId, $subject, $messageText);
+        fridge_invoice_attach_message($pdo, $invoiceId, $messageId);
+        $invoiceMessages++;
+      } else {
+        $invoiceNoAccount[] = $mitarbeiterName;
+      }
     }
 
     $deleteStmt = $pdo->prepare("DELETE FROM kuehlschrank_wochenkosten WHERE woche_start = ?");
@@ -86,6 +136,13 @@ if (isset($_POST['archivieren'])) {
     if ($wocheLabel) {
       $redirectParams['woche_label'] = $wocheLabel;
     }
+
+    $_SESSION['fridge_invoice_notice'] = [
+      'created' => $invoiceCreated,
+      'messages' => $invoiceMessages,
+      'duplicates' => $invoiceDuplicates,
+      'no_account' => $invoiceNoAccount,
+    ];
 
     header('Location: kuehlschrank_edit.php?' . http_build_query($redirectParams));
     exit;
@@ -172,12 +229,38 @@ $letzteAktualisierung = $verlauf[0]['datum'] ?? null;
     </div>
   </header>
 
+  <section class="inventory-section">
+    <div class="form-actions" style="justify-content:flex-start;">
+      <a href="kuehlschrank_rechnungen.php" class="inventory-submit">💶 Rechnungen verwalten</a>
+    </div>
+  </section>
+
   <?php if (isset($_GET['done'])): ?>
     <section class="inventory-section">
       <h2>Wochenabschluss</h2>
       <p class="inventory-section__intro" style="color:#86ffb5;">
         ✅ Wochenabschluss erfolgreich archiviert<?php if (isset($_GET['woche_label'])): ?> – <?= htmlspecialchars($_GET['woche_label']) ?><?php endif; ?>.
       </p>
+    </section>
+  <?php endif; ?>
+
+  <?php if (!empty($invoiceFlash)): ?>
+    <section class="inventory-section">
+      <h2>Kühlschrankabrechnungen</h2>
+      <p class="inventory-section__intro" style="color:#86ffb5;">
+        💶 <?= (int)$invoiceFlash['created'] ?> Rechnung(en) erzeugt, <?= (int)$invoiceFlash['messages'] ?> Nachricht(en) versendet.
+      </p>
+      <?php if (!empty($invoiceFlash['no_account'])): ?>
+        <p class="inventory-section__intro" style="color:#ffdb87;">
+          ⚠️ Für folgende Personen konnte keine Nachricht verschickt werden: <?= htmlspecialchars(implode(', ', array_unique($invoiceFlash['no_account']))) ?>.
+          Bitte prüfe, ob Benutzerkonten vorhanden sind.
+        </p>
+      <?php endif; ?>
+      <?php if (!empty($invoiceFlash['duplicates'])): ?>
+        <p class="inventory-section__intro" style="color:#ff9a9a;">
+          🔁 Für <?= htmlspecialchars(implode(', ', array_unique($invoiceFlash['duplicates']))) ?> existierte bereits eine Rechnung und es wurde keine neue erstellt.
+        </p>
+      <?php endif; ?>
     </section>
   <?php endif; ?>
 
