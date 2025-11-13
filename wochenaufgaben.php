@@ -5,6 +5,7 @@ ini_set('display_errors', 1);
 session_start();
 require_once 'includes/db.php';
 require_once 'includes/wochenaufgaben_helpers.php';
+require_once 'includes/wochenaufgaben_penalties.php';
 
 /* === Feedback aus vorherigen Aktionen === */
 $feedbackMeldung = $_SESSION['wochenaufgaben_error'] ?? null;
@@ -51,6 +52,12 @@ $zeitraumStart = $wochenzeitraum['start_datetime'];
 $zeitraumEnde = $wochenzeitraum['end_datetime'];
 
 ensureWochenaufgabenPlanTable($pdo);
+wochenaufgaben_penalties_ensure_schema($pdo);
+
+$penaltySettings = wochenaufgaben_penalties_get_settings($pdo);
+$penaltyBaseDisplay = number_format($penaltySettings['penalty_base_amount'], 2, ',', '.');
+$penaltyPerUnitDisplay = number_format($penaltySettings['penalty_per_unit'], 2, ',', '.');
+$penaltyThresholdDisplay = (int)$penaltySettings['penalty_threshold_percent'];
 
 /* === Prüfen, ob Wochenaufgaben zugewiesen wurden === */
 $stmtAufgabenCheck = $pdo->prepare(
@@ -143,6 +150,26 @@ if ($hatAufgaben) {
       }
     }
   }
+}
+
+$eigenePenalty = null;
+if ($hatAufgaben) {
+  $penaltyPreview = wochenaufgaben_penalties_calculate($pdo, $aktuelleWoche, $penaltySettings);
+  foreach ($penaltyPreview as $penaltyRow) {
+    if ($penaltyRow['mitarbeiter'] === $nutzername) {
+      $eigenePenalty = $penaltyRow;
+      break;
+    }
+  }
+}
+
+$eigenePenaltyFormatted = null;
+if ($eigenePenalty) {
+  $eigenePenaltyFormatted = [
+    'percent' => number_format($eigenePenalty['prozent_erfuellt'], 1, ',', '.'),
+    'amount' => number_format($eigenePenalty['penalty_amount'], 2, ',', '.'),
+    'missing' => number_format($eigenePenalty['fehlende_summe'], 0, ',', '.'),
+  ];
 }
 
 /* === Ranggruppen für Lagerzuweisung === */
@@ -324,6 +351,29 @@ if (!$hatAufgaben) {
     <p class="inventory-info">
       Einträge werden automatisch dem passenden Lager (Azubi oder Hauptlager) gutgeschrieben.
     </p>
+    <p class="inventory-info">
+      ⚖️ Strafregelung: bis zu <?= htmlspecialchars($penaltyBaseDisplay) ?> € Basis +
+      <?= htmlspecialchars($penaltyPerUnitDisplay) ?> € pro fehlender Einheit.
+      Ab <?= htmlspecialchars((string)$penaltyThresholdDisplay) ?>% Erfüllung entfällt die Strafe.
+    </p>
+    <?php if ($eigenePenaltyFormatted): ?>
+      <?php if ($eigenePenalty['penalty_amount'] > 0): ?>
+        <p class="inventory-note">
+          🚨 Aktueller Stand: <?= htmlspecialchars($eigenePenaltyFormatted['percent']) ?>% erledigt – es fehlen noch
+          <?= htmlspecialchars($eigenePenaltyFormatted['missing']) ?> Einheit(en).
+          Würde die Woche heute enden, läge deine Strafgebühr bei <?= htmlspecialchars($eigenePenaltyFormatted['amount']) ?> €.
+        </p>
+      <?php else: ?>
+        <p class="inventory-note">
+          ✅ Du liegst aktuell bei <?= htmlspecialchars($eigenePenaltyFormatted['percent']) ?>% und damit über der Mindest-Erfüllung – es fällt
+          keine Strafgebühr an.
+        </p>
+      <?php endif; ?>
+    <?php elseif ($anzahlAufgaben > 0): ?>
+      <p class="inventory-note">
+        Tipp: Erledige deine Wochenaufgaben rechtzeitig – nur so vermeidest du Strafgebühren.
+      </p>
+    <?php endif; ?>
 
     <div class="inventory-metrics">
       <div class="inventory-metric">
