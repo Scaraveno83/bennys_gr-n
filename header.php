@@ -86,35 +86,89 @@ $adminErlaubteRollen = [
       <img src="<?= $basePath ?>pics/header_logo.png" alt="Benny’s Original Motor Works" class="brand-banner">
     </a>
 
-    <?php if (!empty($topPerformer)): ?>
-      <a class="header-highlight" href="<?= htmlspecialchars($basePath . (string) ($topPerformer['profile_path'] ?? 'profile.php')) ?>">
-        <span class="header-highlight__label">Top Performer</span>
-        <span class="header-highlight__name"><?= htmlspecialchars((string) ($topPerformer['name'] ?? '')) ?></span>
-        <span class="header-highlight__score">
-          <?= number_format((int) ($topPerformer['xp']['total'] ?? 0), 0, ',', '.') ?> XP
-          <?php if (!empty($topPerformer['level']['number'])): ?>
-            · Level <?= htmlspecialchars((string) $topPerformer['level']['number']) ?>
-          <?php endif; ?>
-        </span>
-      </a>
-    <?php endif; ?>
-    
     <!-- 📋 Menü -->
     <div class="menu-container">
-      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">
-        <span class="menu-toggle__ring" aria-hidden="true"></span>
-        <span class="menu-toggle__inner">
-          <span class="menu-toggle__icon" aria-hidden="true">
-            <span class="menu-toggle__bar"></span>
-            <span class="menu-toggle__bar"></span>
-            <span class="menu-toggle__bar"></span>
+      <div class="menu-bar">
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu" data-dropdown-toggle="mainMenu">
+          <span class="menu-toggle__ring" aria-hidden="true"></span>
+          <span class="menu-toggle__inner">
+            <span class="menu-toggle__icon" aria-hidden="true">
+              <span class="menu-toggle__bar"></span>
+              <span class="menu-toggle__bar"></span>
+              <span class="menu-toggle__bar"></span>
+            </span>
+            <span class="menu-toggle__text">
+              <span class="menu-toggle__text-primary">Menü</span>
+              <span class="menu-toggle__text-secondary">Navigation</span>
+            </span>
           </span>
-          <span class="menu-toggle__text">
-            <span class="menu-toggle__text-primary">Menü</span>
-            <span class="menu-toggle__text-secondary">Navigation</span>
-          </span>
-        </span>
-      </button>
+        </button>
+
+        <?php if (!empty($topPerformer)): ?>
+          <div class="top-performer-container">
+            <button
+              class="top-performer-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="topPerformerMenu"
+              data-dropdown-toggle="topPerformerMenu"
+            >
+              <span class="top-performer-toggle__icon" aria-hidden="true">🏆</span>
+              <span class="top-performer-toggle__text">Ranking</span>
+            </button>
+
+            <div class="top-performer-dropdown" id="topPerformerMenu" role="menu">
+              <div class="top-performer-dropdown__header">
+                <div class="top-performer-dropdown__summary">
+                  <span class="top-performer-dropdown__label">Aktueller Champion</span>
+                  <span class="top-performer-dropdown__name"><?= htmlspecialchars((string) ($topPerformer['name'] ?? '')) ?></span>
+                  <span class="top-performer-dropdown__score">
+                    <?= number_format((int) ($topPerformer['xp']['total'] ?? 0), 0, ',', '.') ?> XP
+                    <?php if (!empty($topPerformer['level']['number'])): ?>
+                      · Level <?= htmlspecialchars((string) $topPerformer['level']['number']) ?>
+                    <?php endif; ?>
+                  </span>
+                </div>
+                <a
+                  class="top-performer-dropdown__profile"
+                  href="<?= htmlspecialchars($basePath . (string) ($topPerformer['profile_path'] ?? 'profile.php')) ?>"
+                >
+                  👤 Profil ansehen
+                </a>
+              </div>
+
+              <dl class="top-performer-metrics">
+                <div class="top-performer-metrics__item">
+                  <dt>Gesammelte XP</dt>
+                  <dd><?= number_format((int) ($topPerformer['xp']['total'] ?? 0), 0, ',', '.') ?></dd>
+                </div>
+                <div class="top-performer-metrics__item">
+                  <dt>Erfüllte Wochenaufgaben</dt>
+                  <dd><?= number_format((int) ($topPerformer['metrics']['tasks'] ?? 0), 0, ',', '.') ?></dd>
+                </div>
+                <div class="top-performer-metrics__item">
+                  <dt>Forum-Beiträge</dt>
+                  <dd><?= number_format((int) ($topPerformer['metrics']['forum_posts'] ?? 0), 0, ',', '.') ?></dd>
+                </div>
+                <div class="top-performer-metrics__item">
+                  <dt>News-Reaktionen</dt>
+                  <dd><?= number_format((int) ($topPerformer['metrics']['news_reactions'] ?? 0), 0, ',', '.') ?></dd>
+                </div>
+                <div class="top-performer-metrics__item">
+                  <dt>News-Kommentare</dt>
+                  <dd><?= number_format((int) ($topPerformer['metrics']['news_comments'] ?? 0), 0, ',', '.') ?></dd>
+                </div>
+              </dl>
+
+              <a class="top-performer-dropdown__cta" href="<?= $basePath ?>leaderboard.php">
+                🏁 Gesamtes Ranking ansehen
+              </a>
+            </div>
+          </div>
+        <?php endif; ?>
+      </div>
+
       <nav class="dropdown" id="mainMenu">
 
         <!-- 🏠 Allgemein -->

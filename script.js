@@ -54,30 +54,59 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ------------------------------
      DROPDOWN MENÜ FUNKTION
   ------------------------------- */
-  const menuToggle = document.querySelector('.menu-toggle');
-  const dropdown = document.getElementById('mainMenu');
-  if (menuToggle && dropdown) {
-    const setMenuState = (isOpen) => {
-      dropdown.classList.toggle('show', isOpen);
-      menuToggle.classList.toggle('is-open', isOpen);
-      menuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    };
+  const dropdownToggles = Array.from(document.querySelectorAll('[data-dropdown-toggle]'));
+  const dropdownPairs = dropdownToggles
+    .map((toggle) => {
+      const targetId = toggle.getAttribute('data-dropdown-toggle');
+      if (!targetId) return null;
+      const dropdownEl = document.getElementById(targetId);
+      if (!dropdownEl) return null;
+      toggle.setAttribute('aria-expanded', 'false');
+      return { toggle, dropdown: dropdownEl };
+    })
+    .filter(Boolean);
 
-    menuToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const willOpen = !dropdown.classList.contains('show');
-      setMenuState(willOpen);
+  const setDropdownState = (pair, isOpen) => {
+    pair.dropdown.classList.toggle('show', isOpen);
+    pair.toggle.classList.toggle('is-open', isOpen);
+    pair.toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  };
+
+  const closeAllDropdowns = (except = null) => {
+    dropdownPairs.forEach((pair) => {
+      if (except && pair.dropdown === except) {
+        return;
+      }
+      setDropdownState(pair, false);
     });
+  };
 
-    document.addEventListener('click', (e) => {
-      if (!dropdown.contains(e.target) && !menuToggle.contains(e.target)) {
-        setMenuState(false);
+  dropdownPairs.forEach((pair) => {
+    pair.toggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const willOpen = !pair.dropdown.classList.contains('show');
+      if (willOpen) {
+        closeAllDropdowns(pair.dropdown);
+      } else {
+        closeAllDropdowns();
+      }
+      setDropdownState(pair, willOpen);
+    });
+  });
+
+  if (dropdownPairs.length > 0) {
+    document.addEventListener('click', (event) => {
+      const clickedInside = dropdownPairs.some((pair) =>
+        pair.dropdown.contains(event.target) || pair.toggle.contains(event.target)
+      );
+      if (!clickedInside) {
+        closeAllDropdowns();
       }
     });
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        setMenuState(false);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeAllDropdowns();
       }
     });
   }
