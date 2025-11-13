@@ -80,12 +80,6 @@ $statusInfo = profile_status_info($me['calendar_status'] ?? null, $me['calendar_
 
 $metrics = [];
 $metrics[] = [
-    'label' => 'Rang',
-    'value' => $me['rang'] ?: 'Unbekannt',
-    'hint'  => 'aktueller Dienstgrad',
-];
-
-$metrics[] = [
     'label' => 'Status',
     'value' => $statusInfo['text'],
     'hint'  => $statusInfo['hint'] ?? 'Teamstatus',
@@ -141,7 +135,6 @@ $icon = isset($rang_icons[$me['rang']]) ? "pics/icons/" . $rang_icons[$me['rang'
   <header class="inventory-header profile-header">
     <div class="profile-header__avatar">
       <img src="<?= htmlspecialchars($bild) ?>" class="profile-avatar" alt="Aktuelles Profilbild">
-      <span class="profile-edit-hint">PNG oder JPG, idealerweise 800×800 px</span>
     </div>
     <div class="profile-header__content">
       <h1 class="inventory-title">🛠️ Profil bearbeiten</h1>
