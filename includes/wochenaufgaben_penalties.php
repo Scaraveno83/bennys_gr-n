@@ -73,7 +73,7 @@ function wochenaufgaben_penalties_cast_settings(array $settings): array
 
     $merged['penalty_base_amount'] = max(0.0, (float)$merged['penalty_base_amount']);
     $merged['penalty_per_unit'] = max(0.0, (float)$merged['penalty_per_unit']);
-    $merged['penalty_threshold_percent'] = (int)round($merged['penalty_threshold_percent']);
+    $merged['penalty_threshold_percent'] = (int)round((float)$merged['penalty_threshold_percent']);
     if ($merged['penalty_threshold_percent'] < 0) {
         $merged['penalty_threshold_percent'] = 0;
     }
