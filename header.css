@@ -229,12 +229,14 @@
   font-size: 1.05rem;
   font-weight: 800;
   color: #fff;
+  overflow-wrap: anywhere;
 }
 
 .top-performer-dropdown__score {
   font-size: 0.85rem;
   font-weight: 700;
   color: rgba(200, 255, 210, 0.8);
+  overflow-wrap: anywhere;
 }
 
 .top-performer-dropdown__profile {
@@ -283,6 +285,8 @@
   text-transform: uppercase;
   letter-spacing: 0.18em;
   color: rgba(200, 255, 210, 0.65);
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .top-performer-metrics__item dd {
