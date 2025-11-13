@@ -8,9 +8,10 @@ if (empty($_SESSION['user_id'])) {
 }
 
 $stmt = $pdo->prepare("
-  SELECT m.*, u.username
+  SELECT m.*, u.username, us.status AS calendar_status, us.until AS calendar_until
   FROM user_accounts u
   JOIN mitarbeiter m ON m.id = u.mitarbeiter_id
+  LEFT JOIN user_status us ON us.user_id = u.id
   WHERE u.id = ?
 ");
 $stmt->execute([$_SESSION['user_id']]);
@@ -27,7 +28,6 @@ if (isset($_POST['beschreibung'])) {
     $stmt->execute([
         $_POST['beschreibung'],
         $_POST['skills'],
-        $_POST['status'],
         $_POST['phone'],
         $_POST['email'],
         $me['id']
@@ -46,6 +46,36 @@ if (!empty($me['skills'])) {
     $skillsList = array_filter(array_map('trim', preg_split('/[,;\n]+/', $me['skills'])));
 }
 
+if (!function_exists('profile_status_info')) {
+    function profile_status_info(?string $status, ?string $until): array
+    {
+        $status = $status ?: 'Aktiv';
+        $text = $status;
+        $hint = null;
+
+        if ($status === 'Abwesend') {
+            $text = 'Inaktiv';
+            if (!empty($until)) {
+                try {
+                    $dt = new DateTime($until);
+                    $hint = 'Bis ' . $dt->format('d.m.Y H:i') . ' abgemeldet';
+                } catch (Exception $e) {
+                    $hint = 'Aktuell abgemeldet';
+                }
+            } else {
+                $hint = 'Aktuell abgemeldet';
+            }
+        } elseif ($status === 'Aktiv') {
+            $text = 'Aktiv';
+            $hint = 'Im Dienst';
+        }
+
+        return ['text' => $text, 'hint' => $hint];
+    }
+}
+
+$statusInfo = profile_status_info($me['calendar_status'] ?? null, $me['calendar_until'] ?? null);
+
 $metrics = [];
 $metrics[] = [
     'label' => 'Rang',
@@ -53,13 +83,11 @@ $metrics[] = [
     'hint'  => 'aktueller Dienstgrad',
 ];
 
-if (!empty($me['status'])) {
-    $metrics[] = [
-        'label' => 'Status',
-        'value' => $me['status'],
-        'hint'  => 'Teamstatus',
-    ];
-}
+$metrics[] = [
+    'label' => 'Status',
+    'value' => $statusInfo['text'],
+    'hint'  => $statusInfo['hint'] ?? 'Teamstatus',
+]
 
 if (!empty($skillsList)) {
     $metrics[] = [
@@ -174,11 +202,6 @@ $icon = isset($rang_icons[$me['rang']]) ? "pics/icons/" . $rang_icons[$me['rang'
     <div class="input-control input-control--full">
           <label for="skills">Skills</label>
           <input type="text" id="skills" name="skills" class="input-field" value="<?= htmlspecialchars($me['skills']) ?>" placeholder="z. B. Karosserie, Diagnose, Kundenservice">
-        </div>
-
-    <div class="input-control">
-          <label for="status">Status</label>
-          <input type="text" id="status" name="status" class="input-field" value="<?= htmlspecialchars($me['status']) ?>">
         </div>
 
     <div class="input-control">

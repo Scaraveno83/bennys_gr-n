@@ -25,16 +25,23 @@ if (!empty($_SESSION['user_id'])) {
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $profil_id = (int)$_GET['id'];
 
-    $stmt = $pdo->prepare("SELECT * FROM mitarbeiter WHERE id = ?");
+   $stmt = $pdo->prepare("
+      SELECT m.*, us.status AS calendar_status, us.until AS calendar_until
+      FROM mitarbeiter m
+      LEFT JOIN user_accounts u ON u.mitarbeiter_id = m.id
+      LEFT JOIN user_status us ON us.user_id = u.id
+      WHERE m.id = ?
+    ");
     $stmt->execute([$profil_id]);
     $me = $stmt->fetch(PDO::FETCH_ASSOC);
 
 } else {
     // Sonst → eigenes Profil
     $stmt = $pdo->prepare("
-      SELECT m.*
+      SELECT m.*, us.status AS calendar_status, us.until AS calendar_until
       FROM user_accounts u
       JOIN mitarbeiter m ON m.id = u.mitarbeiter_id
+      LEFT JOIN user_status us ON us.user_id = u.id
       WHERE u.id = ?
     ");
     $stmt->execute([$_SESSION['user_id']]);
@@ -57,6 +64,36 @@ if (!function_exists('profile_number_format')) {
         return number_format($value, 0, ',', '.');
     }
 }
+
+if (!function_exists('profile_status_info')) {
+    function profile_status_info(?string $status, ?string $until): array
+    {
+        $status = $status ?: 'Aktiv';
+        $text = $status;
+        $hint = null;
+
+        if ($status === 'Abwesend') {
+            $text = 'Inaktiv';
+            if (!empty($until)) {
+                try {
+                    $dt = new DateTime($until);
+                    $hint = 'Bis ' . $dt->format('d.m.Y H:i') . ' abgemeldet';
+                } catch (Exception $e) {
+                    $hint = 'Aktuell abgemeldet';
+                }
+            } else {
+                $hint = 'Aktuell abgemeldet';
+            }
+        } elseif ($status === 'Aktiv') {
+            $text = 'Aktiv';
+            $hint = 'Im Dienst';
+        }
+
+        return ['text' => $text, 'hint' => $hint];
+    }
+}
+
+$statusInfo = profile_status_info($me['calendar_status'] ?? null, $me['calendar_until'] ?? null);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -100,13 +137,11 @@ $metrics[] = [
     'hint'  => null,
 ];
 
-if (!empty($me['status'])) {
-    $metrics[] = [
-        'label' => 'Status',
-        'value' => $me['status'],
-        'hint'  => 'Aktuelle Einsatzlage',
-    ];
-}
+$metrics[] = [
+    'label' => 'Status',
+    'value' => $statusInfo['text'],
+    'hint'  => $statusInfo['hint'],
+];
 
 if (!empty($skillsList)) {
     $skillsPreview = array_slice($skillsList, 0, 3);
@@ -160,8 +195,13 @@ $contactItems = [
         <span class="profile-rank__title"><?= htmlspecialchars($me['rang'] ?: 'Unbekannter Rang') ?></span>
       </div>
 
-      <?php if (!empty($me['status'])): ?>
-        <p class="inventory-description profile-status"><?= htmlspecialchars($me['status']) ?></p>
+      <?php if (!empty($statusInfo['text'])): ?>
+        <p class="inventory-description profile-status">
+          <?= htmlspecialchars($statusInfo['text']) ?>
+          <?php if (!empty($statusInfo['hint'])): ?>
+            <span class="profile-status__hint">(<?= htmlspecialchars($statusInfo['hint']) ?>)</span>
+          <?php endif; ?>
+        </p>
       <?php endif; ?>
 
       <?php if (!empty($metrics)): ?>
