@@ -188,15 +188,6 @@ $contactItems = [
         <span class="profile-rank__title"><?= htmlspecialchars($me['rang'] ?: 'Unbekannter Rang') ?></span>
       </div>
 
-      <?php if (!empty($statusInfo['text'])): ?>
-        <p class="inventory-description profile-status">
-          <?= htmlspecialchars($statusInfo['text']) ?>
-          <?php if (!empty($statusInfo['hint'])): ?>
-            <span class="profile-status__hint">(<?= htmlspecialchars($statusInfo['hint']) ?>)</span>
-          <?php endif; ?>
-        </p>
-      <?php endif; ?>
-
       <?php if (!empty($metrics)): ?>
         <div class="inventory-metrics profile-metrics">
           <?php foreach ($metrics as $metric): ?>
