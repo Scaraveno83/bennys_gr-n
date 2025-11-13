@@ -225,6 +225,7 @@ $adminErlaubteRollen = [
         <?php if ($isAdmin || ($userRang && in_array($userRang, $adminErlaubteRollen))): ?>
           <span class="dropdown-category">🛠️ Verwaltung</span>
           <a href="<?= $basePath ?>admin/dashboard.php">⚙️ Admin-Dashboard</a>
+          <a href="<?= $basePath ?>admin/kuehlschrank_rechnungen.php">💶 Kühlschrankabrechnungen</a>
           <a href="<?= $basePath ?>admin/news_manage.php">📰 News verwalten</a>
         <?php endif; ?>
 
