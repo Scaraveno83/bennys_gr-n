@@ -18,19 +18,21 @@ $stmt->execute([$_SESSION['user_id']]);
 $me = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$me) { http_response_code(404); exit('Profil nicht gefunden'); }
 if (isset($_POST['beschreibung'])) {
-
     $stmt = $pdo->prepare("
         UPDATE mitarbeiter
-        SET beschreibung = ?, skills = ?, status = ?, phone = ?, email = ?
-        WHERE id = ?
+        SET beschreibung = :beschreibung,
+            skills = :skills,
+            phone = :phone,
+            email = :email
+        WHERE id = :id
     ");
 
     $stmt->execute([
-        $_POST['beschreibung'],
-        $_POST['skills'],
-        $_POST['phone'],
-        $_POST['email'],
-        $me['id']
+        ':beschreibung' => $_POST['beschreibung'] ?? '',
+        ':skills'        => $_POST['skills'] ?? '',
+        ':phone'         => $_POST['phone'] ?? '',
+        ':email'         => $_POST['email'] ?? '',
+        ':id'            => $me['id'],
     ]);
 
     header("Location: profile.php?id=" . $me['id']);
@@ -87,7 +89,7 @@ $metrics[] = [
     'label' => 'Status',
     'value' => $statusInfo['text'],
     'hint'  => $statusInfo['hint'] ?? 'Teamstatus',
-]
+];
 
 if (!empty($skillsList)) {
     $metrics[] = [
