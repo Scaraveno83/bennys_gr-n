@@ -3,6 +3,7 @@ session_start();
 require_once '../includes/db.php';
 require_once '../includes/admin_access.php';
 require_once '../includes/wochenaufgaben_helpers.php';
+require_once '../includes/wochenaufgaben_penalties.php';
 
 /* === Produkte === */
 $produkte = ['Öl', 'Fasern', 'Stoff', 'Eisenbarren', 'Eisenerz'];
@@ -12,11 +13,117 @@ $stmt_mitarbeiter = $pdo->query("SELECT name FROM mitarbeiter ORDER BY name ASC"
 $mitarbeiter_liste = $stmt_mitarbeiter->fetchAll(PDO::FETCH_COLUMN);
 
 ensureWochenaufgabenPlanTable($pdo);
+wochenaufgaben_penalties_ensure_schema($pdo);
+
+$penaltySettings = wochenaufgaben_penalties_get_settings($pdo);
+$penaltyFeedback = null;
+$penaltyGenerationSummary = null;
+$penaltyPreview = [];
+$penaltyRecords = [];
 
 $selectedWeek = normalizeKalenderwoche($_GET['week'] ?? null);
 $wochenzeitraum = getWeekPeriod($selectedWeek);
 $zeitraumStart = $wochenzeitraum['start_datetime'];
 $zeitraumEnde = $wochenzeitraum['end_datetime'];
+
+if (isset($_GET['penalty_mark_paid'])) {
+  $penaltyId = (int)$_GET['penalty_mark_paid'];
+  if ($penaltyId > 0) {
+    wochenaufgaben_penalties_mark_paid($pdo, $penaltyId);
+  }
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($selectedWeek));
+  exit;
+}
+
+if (isset($_GET['penalty_mark_open'])) {
+  $penaltyId = (int)$_GET['penalty_mark_open'];
+  if ($penaltyId > 0) {
+    wochenaufgaben_penalties_mark_open($pdo, $penaltyId);
+  }
+  header("Location: wochenaufgaben_edit.php?week=" . urlencode($selectedWeek));
+  exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_penalty_settings'])) {
+  $input = [
+    'penalty_base_amount' => str_replace(',', '.', (string)($_POST['penalty_base_amount'] ?? '0')),
+    'penalty_per_unit' => str_replace(',', '.', (string)($_POST['penalty_per_unit'] ?? '0')),
+    'penalty_threshold_percent' => (int)($_POST['penalty_threshold_percent'] ?? 0),
+  ];
+
+  wochenaufgaben_penalties_save_settings($pdo, $input);
+  $penaltySettings = wochenaufgaben_penalties_get_settings($pdo);
+  $penaltyFeedback = 'Strafgebühren-Einstellungen gespeichert.';
+}
+
+$previewCalculated = false;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_penalties'])) {
+  $penaltyPreview = wochenaufgaben_penalties_calculate($pdo, $selectedWeek, $penaltySettings);
+  $previewCalculated = true;
+
+  $senderId = $_SESSION['user_id'] ?? null;
+  $created = 0;
+  $updated = 0;
+  $messages = 0;
+  $candidates = 0;
+
+  foreach ($penaltyPreview as $penaltyRow) {
+    if ($penaltyRow['penalty_amount'] <= 0.0) {
+      continue;
+    }
+
+    $candidates++;
+    $result = wochenaufgaben_penalties_store($pdo, $penaltyRow, $senderId);
+    if ($result['status'] === 'created') {
+      $created++;
+    } else {
+      $updated++;
+    }
+    if (!empty($result['message_sent'])) {
+      $messages++;
+    }
+  }
+
+  $penaltyGenerationSummary = [
+    'created' => $created,
+    'updated' => $updated,
+    'messages' => $messages,
+    'candidates' => $candidates,
+  ];
+
+  $penaltyFeedback = 'Strafgebühren wurden aktualisiert.';
+}
+
+if (!$previewCalculated) {
+  $penaltyPreview = wochenaufgaben_penalties_calculate($pdo, $selectedWeek, $penaltySettings);
+}
+
+$penaltyRecords = wochenaufgaben_penalties_fetch_for_week($pdo, $selectedWeek);
+
+$penaltyStats = [
+  'employees' => count($penaltyPreview),
+  'with_penalty' => 0,
+  'total_amount' => 0.0,
+  'avg_completion' => 0.0,
+  'total_missing' => 0,
+];
+
+if ($penaltyPreview) {
+  $sumPercent = 0.0;
+  foreach ($penaltyPreview as $previewRow) {
+    $sumPercent += (float)$previewRow['prozent_erfuellt'];
+    $penaltyStats['total_missing'] += (int)$previewRow['fehlende_summe'];
+    if ($previewRow['penalty_amount'] > 0) {
+      $penaltyStats['with_penalty']++;
+      $penaltyStats['total_amount'] += (float)$previewRow['penalty_amount'];
+    }
+  }
+  $penaltyStats['avg_completion'] = $penaltyStats['employees'] > 0
+    ? round($sumPercent / $penaltyStats['employees'], 1)
+    : 0.0;
+  $penaltyStats['total_amount'] = round($penaltyStats['total_amount'], 2);
+}
 
 /* === Archivierung manuell anstoßen === */
 if (isset($_GET['archive'])) {
@@ -240,6 +347,68 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
   gap: 12px;
 }
 
+.penalty-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .penalty-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.penalty-card {
+  background: rgba(10, 12, 13, 0.85);
+  border: 1px solid rgba(57, 255, 20, 0.25);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.penalty-card h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #8effa8;
+}
+
+.penalty-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge--open {
+  background: rgba(255, 196, 0, 0.15);
+  color: #ffd866;
+}
+
+.badge--paid {
+  background: rgba(118, 255, 101, 0.12);
+  color: #86ffb5;
+}
+
+.penalty-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.penalty-summary strong {
+  color: #eafff1;
+}
+
 .weekly-table select,
 .weekly-table input[type="number"] {
   width: 100%;
@@ -348,6 +517,148 @@ $durchschnittFortschrittGeplant = $anzahlGeplanteAufgaben > 0 ? (int)round($summ
         <button type="submit" class="inventory-submit">🔄 Woche anzeigen</button>
       </div>
     </form>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Strafgebühren &amp; Fairness</h2>
+    <p class="inventory-section__intro">
+      Nicht erfüllte Wochenaufgaben führen zu einer anteiligen Strafgebühr. Die Höhe richtet sich nach den fehlenden Einheiten
+      und der individuell konfigurierbaren Basisstrafe.
+    </p>
+
+    <?php if ($penaltyFeedback): ?>
+      <div class="penalty-card" role="status">
+        <h3>Update</h3>
+        <p><?= htmlspecialchars($penaltyFeedback) ?></p>
+        <?php if ($penaltyGenerationSummary): ?>
+          <div class="penalty-summary">
+            <span><strong><?= $penaltyGenerationSummary['candidates'] ?></strong> Mitarbeitende mit Strafgebühr berechnet</span>
+            <span><strong><?= $penaltyGenerationSummary['created'] ?></strong> neu · <strong><?= $penaltyGenerationSummary['updated'] ?></strong> aktualisiert</span>
+            <span><strong><?= $penaltyGenerationSummary['messages'] ?></strong> Benachrichtigungen versendet</span>
+          </div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
+    <div class="penalty-grid">
+      <article class="penalty-card">
+        <h3>Einstellungen</h3>
+        <p>
+          Passe die Strafgebühren an. Mitarbeitende zahlen nur den Anteil, den sie nicht erfüllt haben.
+          Ab der definierten Mindest-Erfüllung entfällt die Strafe automatisch.
+        </p>
+        <form method="post" action="?week=<?= urlencode($selectedWeek) ?>" class="inventory-form">
+          <input type="hidden" name="save_penalty_settings" value="1">
+
+          <div class="input-control">
+            <label for="penalty_base_amount">Basisstrafe (100&nbsp;% unerfüllt)</label>
+            <input id="penalty_base_amount" type="number" min="0" step="0.01" name="penalty_base_amount"
+              value="<?= htmlspecialchars(number_format($penaltySettings['penalty_base_amount'], 2, '.', '')) ?>" required>
+            <p class="form-hint">Wird anteilig mit dem fehlenden Prozentanteil multipliziert.</p>
+          </div>
+
+          <div class="input-control">
+            <label for="penalty_per_unit">Strafe pro fehlender Einheit</label>
+            <input id="penalty_per_unit" type="number" min="0" step="0.01" name="penalty_per_unit"
+              value="<?= htmlspecialchars(number_format($penaltySettings['penalty_per_unit'], 2, '.', '')) ?>" required>
+          </div>
+
+          <div class="input-control">
+            <label for="penalty_threshold_percent">Mindest-Erfüllung in %</label>
+            <input id="penalty_threshold_percent" type="number" min="0" max="100" step="1"
+              name="penalty_threshold_percent" value="<?= (int)$penaltySettings['penalty_threshold_percent'] ?>" required>
+            <p class="form-hint">Ab diesem Erfüllungsgrad wird keine Strafe ausgelöst.</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="inventory-submit">💾 Einstellungen speichern</button>
+          </div>
+        </form>
+      </article>
+
+      <article class="penalty-card">
+        <h3>Aktuelle Woche (<?= htmlspecialchars($selectedWeek) ?>)</h3>
+        <?php if ($penaltyPreview): ?>
+          <div class="penalty-summary">
+            <span><strong><?= number_format($penaltyStats['employees'], 0, ',', '.') ?></strong> Mitarbeitende mit Wochenzielen</span>
+            <span>Ø Erfüllung: <strong><?= number_format($penaltyStats['avg_completion'], 1, ',', '.') ?>%</strong></span>
+            <span>Fehlende Einheiten: <strong><?= number_format($penaltyStats['total_missing'], 0, ',', '.') ?></strong></span>
+            <span>Potentielle Strafsumme: <strong><?= number_format($penaltyStats['total_amount'], 2, ',', '.') ?> €</strong>
+              (<?= number_format($penaltyStats['with_penalty'], 0, ',', '.') ?> Personen)</span>
+          </div>
+        <?php else: ?>
+          <p>Für die ausgewählte Woche wurden noch keine Aufgaben geplant.</p>
+        <?php endif; ?>
+
+        <form method="post" action="?week=<?= urlencode($selectedWeek) ?>" class="inventory-form">
+          <input type="hidden" name="generate_penalties" value="1">
+          <button type="submit" class="inventory-submit" <?= $penaltyPreview ? '' : 'disabled' ?>>
+            💶 Strafgebühren berechnen &amp; Rechnungen versenden
+          </button>
+        </form>
+
+        <?php if (!$penaltyPreview): ?>
+          <p class="form-hint">Sobald Aufgaben geplant und gebucht sind, kannst du hier Strafen generieren.</p>
+        <?php endif; ?>
+      </article>
+    </div>
+  </section>
+
+  <section class="inventory-section">
+    <h2>Berechnete Strafgebühren</h2>
+    <p class="inventory-section__intro">
+      Übersicht aller Strafgebühren in der aktuellen Kalenderwoche. Von hier aus kannst du Zahlungen markieren oder offene
+      Forderungen nachverfolgen.
+    </p>
+
+    <?php if ($penaltyRecords): ?>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mitarbeiter</th>
+              <th>Erfüllung</th>
+              <th>Fehlend</th>
+              <th>Betrag</th>
+              <th>Status</th>
+              <th>Nachricht</th>
+              <th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($penaltyRecords as $record): ?>
+              <?php
+                $statusClass = ($record['status'] === WOCHENAUFGABEN_PENALTY_STATUS_PAID) ? 'badge--paid' : 'badge--open';
+                $statusLabel = $record['status'] === WOCHENAUFGABEN_PENALTY_STATUS_PAID ? 'bezahlt' : 'offen';
+                $periodLabel = wochenaufgaben_penalties_period_label($record['woche_start'], $record['woche_ende']);
+              ?>
+              <tr>
+                <td>
+                  <strong><?= htmlspecialchars($record['mitarbeiter']) ?></strong><br>
+                  <small><?= htmlspecialchars($periodLabel) ?></small>
+                </td>
+                <td><?= number_format((float)$record['prozent_erfuellt'], 1, ',', '.') ?>%</td>
+                <td><?= number_format((int)$record['fehlende_summe'], 0, ',', '.') ?></td>
+                <td><?= number_format((float)$record['strafe_betrag'], 2, ',', '.') ?> €</td>
+                <td><span class="badge <?= $statusClass ?>"><?= htmlspecialchars($statusLabel) ?></span></td>
+                <td><?= $record['nachricht_id'] ? '✅ gesendet' : '⏳ offen' ?></td>
+                <td>
+                  <?php if ($record['status'] === WOCHENAUFGABEN_PENALTY_STATUS_PAID): ?>
+                    <a class="inventory-submit inventory-submit--ghost inventory-submit--small"
+                      href="?week=<?= urlencode($selectedWeek) ?>&amp;penalty_mark_open=<?= (int)$record['id'] ?>">↩️ offen setzen</a>
+                  <?php else: ?>
+                    <a class="inventory-submit inventory-submit--ghost inventory-submit--small"
+                      href="?week=<?= urlencode($selectedWeek) ?>&amp;penalty_mark_paid=<?= (int)$record['id'] ?>">✅ als bezahlt markieren</a>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php else: ?>
+      <p class="inventory-note">Für diese Woche liegen noch keine Strafgebühren vor.</p>
+    <?php endif; ?>
   </section>
 
   <section class="inventory-section">
