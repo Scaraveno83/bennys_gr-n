@@ -132,12 +132,6 @@ if (!empty($me['skills'])) {
 
 $metrics = [];
 $metrics[] = [
-    'label' => 'Rang',
-    'value' => $me['rang'] ?: 'Unbekannt',
-    'hint'  => null,
-];
-
-$metrics[] = [
     'label' => 'Status',
     'value' => $statusInfo['text'],
     'hint'  => $statusInfo['hint'],
@@ -176,8 +170,7 @@ if (!empty($gamificationProfile)) {
 $contactItems = [
     'E-Mail' => !empty($me['email']) ? $me['email'] : null,
     'Telefon' => !empty($me['phone']) ? $me['phone'] : null,
-    'Rang' => !empty($me['rang']) ? $me['rang'] : null,
-];
+  ];
 ?>
 
 <main class="inventory-page profile-page">
