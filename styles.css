@@ -825,10 +825,10 @@ table.data-table tbody tr.table-row--success:hover {
   width: 100%;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(57, 255, 20, 0.32);
+  border: 1px solid var(--accent-border-mid);
   background:
-    linear-gradient(125deg, rgba(var(--accent-rgb), 0.06), rgba(var(--accent-soft-rgb), 0.02)),
-    rgba(10, 12, 13, 0.9);
+    linear-gradient(125deg, rgba(var(--accent-rgb), 0.08), rgba(var(--accent-soft-rgb), 0.04)),
+    var(--surface-alt);
   color: var(--text);
   transition: var(--transition);
   font: inherit;
@@ -844,8 +844,11 @@ table.data-table tbody tr.table-row--success:hover {
 .input-control select:focus,
 .input-control textarea:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 14px rgba(57, 255, 20, 0.35);
+  border-color: var(--accent-border-strong);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  background:
+    linear-gradient(125deg, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-soft-rgb), 0.08)),
+    var(--surface);
 }
 
 .form-actions {
